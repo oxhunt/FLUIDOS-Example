@@ -1,0 +1,22 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: image-recognition
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: image-recognition
+  template:
+    metadata:
+      labels:
+        app: image-recognition
+    spec:
+      containers:
+      - name: image-recognition
+        image: oxhunt/image-recognition:latest
+        env:
+        - name: MQTT_PORT
+          value: "1883"
+        - name: MQTT_BROKER
+          value: "mosquitto-service"

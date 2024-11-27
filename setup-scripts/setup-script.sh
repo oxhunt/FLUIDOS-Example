@@ -3,12 +3,16 @@
 # This script installs the required components to run FLUIDOS on a K3s cluster.
 # if you use this script, make sure that the ip address of the machine does not change or it could break the metallb configuration
 
+NODE_NAME=$(hostname)
 HOST_INTERFACE="ens18" # Change this to the name of the host interface
 LIQOCTL_VERSION="v0.10.0"
 FLUIDOS_VERSION="0.1.1"
 NODE_IP=$(ip a | grep $HOST_INTERFACE | grep inet | awk '{print $2}' | cut -d '/' -f 1)
-METALLB_ADDRESS_POOL_NAME="default"
 REAR_PORT=30000
+
+
+# loadbalancer config
+METALLB_ADDRESS_POOL_NAME="default"
 
 # Network Manager
 ENABLE_LOCAL_DISCOVERY=true
@@ -16,8 +20,14 @@ FIRST_OCTET=10
 SECOND_OCTET=200
 THIRD_OCTET=0
 
+ROLE="consumer"
+
+# Multus
+CNI_PLUGINS_VERSION="v1.5.1"
+CNI_PLUGINS=("bridge" "loopback" "host-device" "macvlan")
+
 # check that a commandline argument is received
-if [ $# -ne 1 ]; then
+if [ $# -lt 1 ]; then
     echo "Usage: $0 "install" or "uninstall""
     exit 1
 fi
@@ -76,11 +86,22 @@ if [ "$1" == "uninstall" ]; then
     echo "  - Uninstall K3s"
     /usr/local/bin/k3s-uninstall.sh &>/dev/null
 
-    echo "Uninstall complete"    
+    echo "Uninstall complete"
+    exit 0
 elif [ "$1" != "install" ]; then
     echo "Usage: $0 "install" or "uninstall""
     exit 1
 fi
+
+if [ "$2" == "consumer" ]; then
+    role="consumer"
+elif [ "$2" == "provider" ]; then
+    role="provider"
+else
+    echo "Usage: $0 install  [ consumer | provider ]"
+    exit 1
+fi
+
 
 # Update the package list
 sudo apt update &>/dev/null
@@ -375,13 +396,16 @@ else
     fi
 fi
 
-# Download 'consumer-values.yaml' file from GitHub
-echo "  - Downloading consumer-values.yaml"
-curl -s -o consumer-values.yaml https://raw.githubusercontent.com/fluidos-project/node/main/quickstart/utils/consumer-values.yaml
+# Download '$ROLE-values.yaml' file from GitHub
+echo "  - Downloading $ROLE-values.yaml"
+curl -s -o $ROLE-values.yaml https://raw.githubusercontent.com/fluidos-project/node/main/quickstart/utils/$ROLE-values.yaml
 if [ $? -ne 0 ]; then
-    echo "Error: Failed to download consumer-values.yaml"
+    echo "Error: Failed to download $ROLE-values.yaml"
     exit 1
 fi
+
+# replacing the interface in the $ROLE-values.yaml file
+sed -i "s/netInterface: \"eth0\"/netInterface: \"$HOST_INTERFACE\"/" $ROLE-values.yaml
 
 # Label the node
 echo "  - Labeling the node"
@@ -395,7 +419,7 @@ done
 echo "  - Installing FLUIDOS"
 helm upgrade --install node fluidos/node \
     -n fluidos --version "$FLUIDOS_VERSION" \
-    --create-namespace -f consumer-values.yaml \
+    --create-namespace -f $ROLE-values.yaml \
     --set networkManager.configMaps.nodeIdentity.ip="$NODE_IP" \
     --set rearController.service.gateway.nodePort.port="$REAR_PORT" \
     --set networkManager.config.enableLocalDiscovery="$ENABLE_LOCAL_DISCOVERY" \
@@ -412,23 +436,23 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
-# Remove the 'consumer-values.yaml' file
-rm -f consumer-values.yaml 2>/dev/null
+# Remove the '$ROLE-values.yaml' file
+rm -f $ROLE-values.yaml 2>/dev/null
 
 
 
-# WORKAROUND: The FLUIDOS Helm chart currently uses the 'eth0' interface as the master interface for the Macvlan CNI, future versions will allow the user to specify the master interface in the helm chart. 
-# This workaround modifies the Macvlan CNI configuration to use the correct master interface.
-# if you don't do this, the networkmanager will remain stuck in ContainerCreating state
-
-# Export the YAML to a file
-kubectl get network-attachment-definitions.k8s.cni.cncf.io macvlan-conf -n fluidos -o yaml > macvlan-conf.yaml
-
-# Modify eth0 to the value of $HOST_INTERFACE in the file
-sed -i "s/\"master\": \"eth0\"/\"master\": \"$HOST_INTERFACE\"/" macvlan-conf.yaml
-
-# Apply the modified YAML back to the cluster
-kubectl apply -f macvlan-conf.yaml
-
-# Clean up the temporary file
-rm -f macvlan-conf.yaml
+## WORKAROUND: The FLUIDOS Helm chart currently uses the 'eth0' interface as the master interface for the Macvlan CNI, future versions will allow the user to specify the master interface in the helm chart. 
+## This workaround modifies the Macvlan CNI configuration to use the correct master interface.
+## if you don't do this, the networkmanager will remain stuck in ContainerCreating state
+#
+## Export the YAML to a file
+#kubectl get network-attachment-definitions.k8s.cni.cncf.io macvlan-conf -n fluidos -o yaml > macvlan-conf.yaml
+#
+## Modify eth0 to the value of $HOST_INTERFACE in the file
+#sed -i "s/\"master\": \"eth0\"/\"master\": \"$HOST_INTERFACE\"/" macvlan-conf.yaml
+#
+## Apply the modified YAML back to the cluster
+#kubectl apply -f macvlan-conf.yaml
+#
+## Clean up the temporary file
+#rm -f macvlan-conf.yaml

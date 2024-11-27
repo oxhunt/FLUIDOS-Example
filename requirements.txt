@@ -1,0 +1,7 @@
+numpy
+opencv-python
+mediapipe
+opencv-python 
+paho-mqtt
+kubernetes
+termcolor
