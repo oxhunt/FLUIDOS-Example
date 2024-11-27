@@ -16,11 +16,11 @@ METALLB_ADDRESS_POOL_NAME="default"
 
 # Network Manager
 ENABLE_LOCAL_DISCOVERY=true
-FIRST_OCTET=10
-SECOND_OCTET=200
+FIRST_OCTET=192
+SECOND_OCTET=168
 THIRD_OCTET=0
 
-ROLE="consumer"
+
 
 # Multus
 CNI_PLUGINS_VERSION="v1.5.1"
@@ -90,15 +90,6 @@ if [ "$1" == "uninstall" ]; then
     exit 0
 elif [ "$1" != "install" ]; then
     echo "Usage: $0 "install" or "uninstall""
-    exit 1
-fi
-
-if [ "$2" == "consumer" ]; then
-    role="consumer"
-elif [ "$2" == "provider" ]; then
-    role="provider"
-else
-    echo "Usage: $0 install  [ consumer | provider ]"
     exit 1
 fi
 
@@ -396,16 +387,16 @@ else
     fi
 fi
 
-# Download '$ROLE-values.yaml' file from GitHub
-echo "  - Downloading $ROLE-values.yaml"
-curl -s -o $ROLE-values.yaml https://raw.githubusercontent.com/fluidos-project/node/main/quickstart/utils/$ROLE-values.yaml
+# Download 'consumer-values.yaml' file from GitHub
+echo "  - Downloading consumer-values.yaml"
+curl -s -o consumer-values.yaml https://raw.githubusercontent.com/fluidos-project/node/main/quickstart/utils/consumer-values.yaml
 if [ $? -ne 0 ]; then
-    echo "Error: Failed to download $ROLE-values.yaml"
+    echo "Error: Failed to download consumer-values.yaml"
     exit 1
 fi
 
-# replacing the interface in the $ROLE-values.yaml file
-sed -i "s/netInterface: \"eth0\"/netInterface: \"$HOST_INTERFACE\"/" $ROLE-values.yaml
+# replacing the interface in the consumer-values.yaml file
+sed -i "s/netInterface: \"eth0\"/netInterface: \"$HOST_INTERFACE\"/" consumer-values.yaml
 
 # Label the node
 echo "  - Labeling the node"
@@ -419,7 +410,7 @@ done
 echo "  - Installing FLUIDOS"
 helm upgrade --install node fluidos/node \
     -n fluidos --version "$FLUIDOS_VERSION" \
-    --create-namespace -f $ROLE-values.yaml \
+    --create-namespace -f consumer-values.yaml \
     --set networkManager.configMaps.nodeIdentity.ip="$NODE_IP" \
     --set rearController.service.gateway.nodePort.port="$REAR_PORT" \
     --set networkManager.config.enableLocalDiscovery="$ENABLE_LOCAL_DISCOVERY" \
@@ -436,8 +427,8 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
-# Remove the '$ROLE-values.yaml' file
-rm -f $ROLE-values.yaml 2>/dev/null
+# Remove the 'consumer-values.yaml' file
+rm -f consumer-values.yaml 2>/dev/null
 
 
 
