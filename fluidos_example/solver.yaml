@@ -16,6 +16,6 @@ spec:
         name: Match
         data:
           value: amd64
-  findCandidate: true # uses the peering candidates discovered during the discovery process# rear/fluidos
+  findCandidate: true # perform a discovery
   reserveAndBuy: true # takes the first available found # rear/fluidos
   establishPeering: true # fluidos

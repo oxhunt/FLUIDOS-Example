@@ -16,9 +16,9 @@ METALLB_ADDRESS_POOL_NAME="default"
 
 # Network Manager
 ENABLE_LOCAL_DISCOVERY=true
-FIRST_OCTET=192
-SECOND_OCTET=168
-THIRD_OCTET=0
+FIRST_OCTET=10 # Change this to the first octet of the IP address range of the pod cidr
+SECOND_OCTET=42 # Change this to the second octet of the IP address range of the pod cidr
+THIRD_OCTET=1 # Change this to the third octet of the IP address range of the pod cidr
 
 
 
@@ -56,7 +56,7 @@ if [ "$1" == "uninstall" ]; then
         # Check if the status is not empty
         if [ -n "$LIQO_STATUS" ]; then
             echo "  - Uninstall Liqo"
-            liqoctl uninstall
+            liqoctl uninstall --skip-confirm
             if [ $? -ne 0 ]; then
                 echo "Error: Failed to uninstall Liqo"
                 exit 1
@@ -349,7 +349,7 @@ fi
 
 # Install Liqo
 echo "  - Install Liqo"
-liqoctl install k3s --timeout 10m
+liqoctl install k3s --timeout 10m --cluster-name "$NODE_NAME"
 if [ $? -ne 0 ]; then
     echo "Error: Failed to install Liqo"
     exit 1
@@ -396,7 +396,7 @@ if [ $? -ne 0 ]; then
 fi
 
 # replacing the interface in the consumer-values.yaml file
-sed -i "s/netInterface: \"eth0\"/netInterface: \"$HOST_INTERFACE\"/" consumer-values.yaml
+#sed -i "s/netInterface: \"eth0\"/netInterface: \"$HOST_INTERFACE\"/" consumer-values.yaml
 
 # Label the node
 echo "  - Labeling the node"
@@ -417,6 +417,7 @@ helm upgrade --install node fluidos/node \
     --set networkManager.config.address.firstOctet="$FIRST_OCTET" \
     --set networkManager.config.address.secondOctet="$SECOND_OCTET" \
     --set networkManager.config.address.thirdOctet="$THIRD_OCTET" \
+    --set networkManager.config.netInterface="$HOST_INTERFACE" \
     --wait \
     --debug \
     --v=2 \

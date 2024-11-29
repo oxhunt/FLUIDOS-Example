@@ -12,9 +12,25 @@ spec:
       labels:
         app: image-recognition
     spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: liqo.io/type
+                    operator: NotIn
+                    values:
+                      - virtual-node
       containers:
       - name: image-recognition
         image: oxhunt/image-recognition:latest
+        resources:
+          limits:
+            memory: "2048Mi"
+            cpu: "1000m"
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
         env:
         - name: MQTT_PORT
           value: "1883"
