@@ -38,7 +38,9 @@ liqoctl unpeer --skip-confirm
 # transactions.reservation.fluidos.eu
 
 # delete all the resources in the fluidos namespace except the flavors
-resources_to_delete="discoveries.advertisement.fluidos.eu\
+resources_to_delete="\
+    flavors.nodecore.fluidos.eu\
+    discoveries.advertisement.fluidos.eu\
     peeringcandidates.advertisement.fluidos.eu\
     knownclusters.network.fluidos.eu\
     allocations.nodecore.fluidos.eu\
@@ -51,3 +53,8 @@ resources_to_delete="discoveries.advertisement.fluidos.eu\
 for resource in $resources_to_delete; do
     kubectl delete $resource --all -n fluidos
 done
+
+# restart all the pods in the fluidos namespace
+kubectl delete pods --all -n fluidos
+
+everything vs 
