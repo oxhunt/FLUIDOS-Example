@@ -411,99 +411,101 @@ if command -v liqoctl status &>/dev/null; then
     fi
 fi
 
+
+
 # if fluidos seems to be already installed, ask the user if they want to reinstall it
 if helm list -A | grep -q fluidos; then
     read -p "FLUIDOS is already installed. Do you want to reinstall it? (Y/n) " -n 1 -r
 
     if [[ $REPLY =~ ^[Nn]$ ]]; then
         echo "\nSkipping"
+        exit 0
     fi
-
-    # Labels to add to the nodes
-    declare -A LABELS
-    LABELS["node-role.fluidos.eu/worker"]="true"
-    LABELS["node-role.fluidos.eu/resources"]="true"
-
-
-    echo "Install Fluidos"
-
-    # Export the KUBECONFIG
-    export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
-
-    # Add the FLUIDOS Helm repository
-    echo "  - Checking if FLUIDOS Helm repository is already present"
-    if helm repo list | grep -q "^fluidos"; then
-        echo "  - FLUIDOS Helm repository is already added"
-    else
-        echo "  - Adding FLUIDOS Helm repository"
-        helm repo add fluidos https://fluidos-project.github.io/node/ 1>/dev/null
-        helm repo update 1>/dev/null
-        if [ $? -ne 0 ]; then
-            echo "Error: Failed to add or update the FLUIDOS Helm repository"
-            exit 1
-        fi
-    fi
-
-    # Download 'consumer-values.yaml' file from GitHub
-    echo "  - Downloading consumer-values.yaml"
-    curl -s -o consumer-values.yaml https://raw.githubusercontent.com/fluidos-project/node/main/quickstart/utils/consumer-values.yaml
-    if [ $? -ne 0 ]; then
-        echo "Error: Failed to download consumer-values.yaml"
-        exit 1
-    fi
-
-    # replacing the interface in the consumer-values.yaml file
-    #sed -i "s/netInterface: \"eth0\"/netInterface: \"$HOST_INTERFACE\"/" consumer-values.yaml
-
-    # Label the node
-    echo "  - Labeling the node"
-    for LABEL_KEY in "${!LABELS[@]}"; do
-        LABEL_VALUE=${LABELS[$LABEL_KEY]}
-        kubectl label node "$NODE_NAME" "$LABEL_KEY=$LABEL_VALUE" --overwrite
-        echo "Label $LABEL_KEY=$LABEL_VALUE set on node $NODE_NAME"
-    done
-
-    # Install FLUIDOS
-    echo "  - Installing FLUIDOS"
-    helm upgrade --install node fluidos/node \
-        -n fluidos --version "$FLUIDOS_VERSION" \
-        --create-namespace -f consumer-values.yaml \
-        --set networkManager.configMaps.nodeIdentity.ip="$NODE_IP" \
-        --set rearController.service.gateway.nodePort.port="$REAR_PORT" \
-        --set networkManager.config.enableLocalDiscovery="$ENABLE_LOCAL_DISCOVERY" \
-        --set networkManager.config.address.firstOctet="$FIRST_OCTET" \
-        --set networkManager.config.address.secondOctet="$SECOND_OCTET" \
-        --set networkManager.config.address.thirdOctet="$THIRD_OCTET" \
-        --set networkManager.config.netInterface="$HOST_INTERFACE" \
-        --wait \
-        --debug \
-        --v=2 \
-        1>/dev/null
-
-    if [ $? -ne 0 ]; then
-        echo "Error: Failed to install FLUIDOS"
-        exit 1
-    fi
-
-    # Remove the 'consumer-values.yaml' file
-    rm -f consumer-values.yaml 2>/dev/null
-
-
-
-    ## OLD WORKAROUND: The FLUIDOS Helm chart currently uses the 'eth0' interface as the master interface for the Macvlan CNI, future versions will allow the user to specify the master interface in the helm chart. 
-    ## This workaround modifies the Macvlan CNI configuration to use the correct master interface.
-    ## if you don't do this, the networkmanager will remain stuck in ContainerCreating state
-    #
-    ## Export the YAML to a file
-    #kubectl get network-attachment-definitions.k8s.cni.cncf.io macvlan-conf -n fluidos -o yaml > macvlan-conf.yaml
-    #
-    ## Modify eth0 to the value of $HOST_INTERFACE in the file
-    #sed -i "s/\"master\": \"eth0\"/\"master\": \"$HOST_INTERFACE\"/" macvlan-conf.yaml
-    #
-    ## Apply the modified YAML back to the cluster
-    #kubectl apply -f macvlan-conf.yaml
-    #
-    ## Clean up the temporary file
-    #rm -f macvlan-conf.yaml
 fi
 
+# Labels to add to the nodes
+declare -A LABELS
+LABELS["node-role.fluidos.eu/worker"]="true"
+LABELS["node-role.fluidos.eu/resources"]="true"
+
+
+echo "Install Fluidos"
+
+# Export the KUBECONFIG
+export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
+
+# Add the FLUIDOS Helm repository
+echo "  - Checking if FLUIDOS Helm repository is already present"
+if helm repo list | grep -q "^fluidos"; then
+    echo "  - FLUIDOS Helm repository is already added"
+else
+    echo "  - Adding FLUIDOS Helm repository"
+    helm repo add fluidos https://fluidos-project.github.io/node/ 1>/dev/null
+    helm repo update 1>/dev/null
+    if [ $? -ne 0 ]; then
+        echo "Error: Failed to add or update the FLUIDOS Helm repository"
+        exit 1
+    fi
+fi
+
+# Download 'consumer-values.yaml' file from GitHub
+echo "  - Downloading consumer-values.yaml"
+curl -s -o consumer-values.yaml https://raw.githubusercontent.com/fluidos-project/node/main/quickstart/utils/consumer-values.yaml
+if [ $? -ne 0 ]; then
+    echo "Error: Failed to download consumer-values.yaml"
+    exit 1
+fi
+
+# replacing the interface in the consumer-values.yaml file
+#sed -i "s/netInterface: \"eth0\"/netInterface: \"$HOST_INTERFACE\"/" consumer-values.yaml
+
+# Label the node
+echo "  - Labeling the node"
+for LABEL_KEY in "${!LABELS[@]}"; do
+    LABEL_VALUE=${LABELS[$LABEL_KEY]}
+    kubectl label node "$NODE_NAME" "$LABEL_KEY=$LABEL_VALUE" --overwrite
+    echo "Label $LABEL_KEY=$LABEL_VALUE set on node $NODE_NAME"
+done
+
+# Install FLUIDOS
+echo "  - Installing FLUIDOS"
+helm upgrade --install node fluidos/node \
+    -n fluidos --version "$FLUIDOS_VERSION" \
+    --create-namespace -f consumer-values.yaml \
+    --set networkManager.configMaps.nodeIdentity.ip="$NODE_IP" \
+    --set rearController.service.gateway.nodePort.port="$REAR_PORT" \
+    --set networkManager.config.enableLocalDiscovery="$ENABLE_LOCAL_DISCOVERY" \
+    --set networkManager.config.address.firstOctet="$FIRST_OCTET" \
+    --set networkManager.config.address.secondOctet="$SECOND_OCTET" \
+    --set networkManager.config.address.thirdOctet="$THIRD_OCTET" \
+    --set networkManager.config.netInterface="$HOST_INTERFACE" \
+    --wait \
+    --debug \
+    --v=2 \
+    1>/dev/null
+
+if [ $? -ne 0 ]; then
+    echo "Error: Failed to install FLUIDOS"
+    exit 1
+fi
+
+# Remove the 'consumer-values.yaml' file
+rm -f consumer-values.yaml 2>/dev/null
+
+
+
+## OLD WORKAROUND: The FLUIDOS Helm chart currently uses the 'eth0' interface as the master interface for the Macvlan CNI, future versions will allow the user to specify the master interface in the helm chart. 
+## This workaround modifies the Macvlan CNI configuration to use the correct master interface.
+## if you don't do this, the networkmanager will remain stuck in ContainerCreating state
+#
+## Export the YAML to a file
+#kubectl get network-attachment-definitions.k8s.cni.cncf.io macvlan-conf -n fluidos -o yaml > macvlan-conf.yaml
+#
+## Modify eth0 to the value of $HOST_INTERFACE in the file
+#sed -i "s/\"master\": \"eth0\"/\"master\": \"$HOST_INTERFACE\"/" macvlan-conf.yaml
+#
+## Apply the modified YAML back to the cluster
+#kubectl apply -f macvlan-conf.yaml
+#
+## Clean up the temporary file
+#rm -f macvlan-conf.yaml
