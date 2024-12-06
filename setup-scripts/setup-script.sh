@@ -18,7 +18,9 @@ METALLB_ADDRESS_POOL_NAME="default"
 ENABLE_LOCAL_DISCOVERY=true
 FIRST_OCTET=10 # Change this to the first octet of the IP address range of the pod cidr
 SECOND_OCTET=42 # Change this to the second octet of the IP address range of the pod cidr
-THIRD_OCTET=1 # Change this to the third octet of the IP address range of the pod cidr
+
+# use a different value for the third octet for each cluster, use the NODE_NAME to generate a unique value between 0 and 254
+THIRD_OCTET=$(printf "%d" "'$NODE_NAME" | awk '{print $1 % 255}')
 
 
 
