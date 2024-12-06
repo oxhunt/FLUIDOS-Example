@@ -144,51 +144,51 @@ if command -v k3s &>/dev/null; then
     if [[ $REPLY =~ ^[Nn]$ ]]; then
         echo "Installation aborted"
         exit 0
-    fi
+    else
 
-    # install k3s without the included loadbalancer, we use metallb instead
-    curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC="--disable=servicelb" K3S_KUBECONFIG_MODE="644" sh - &>/dev/null
-
-
-    export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
-
-    # Add KUBECONFIG to .bashrc if it's not already present
-    grep -qxF 'export KUBECONFIG=/etc/rancher/k3s/k3s.yaml' ~/.bashrc || echo 'export KUBECONFIG=/etc/rancher/k3s/k3s.yaml' >> ~/.bashrc
-
-    # Add alias for kubectl to .bashrc only if it's not already present
-    grep -qxF 'alias k=kubectl' ~/.bashrc || echo 'alias k=kubectl' >> ~/.bashrc
-
-    # Add kubectl bash completion sourcing to .bashrc only if it's not already present
-    grep -qxF 'source <(kubectl completion bash)' ~/.bashrc || echo 'source <(kubectl completion bash)' >> ~/.bashrc
-
-    # Add kubectl completion for the alias 'k' only to .bashrc if it's not already present
-    grep -qxF 'complete -F __start_kubectl k' ~/.bashrc || echo 'complete -F __start_kubectl k' >> ~/.bashrc
-
-    # Wait until resources are available in the kube-system namespace
-    while true; do
-        pod_count=$(kubectl get pods -n kube-system --no-headers 2>/dev/null | wc -l)
-        if [ "$pod_count" -gt 0 ]; then
-            echo "Resources found in kube-system namespace."
-            break
-        else
-            echo "Waiting for resources to appear in kube-system namespace..."
-            sleep 5
-        fi
-    done
-
-    # Wait for all pods to become ready
-    kubectl wait --for=condition=ready pod -n kube-system --all --timeout=90s &>/dev/null
+        # install k3s without the included loadbalancer, we use metallb instead
+        curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC="--disable=servicelb" K3S_KUBECONFIG_MODE="644" sh - &>/dev/null
 
 
+        export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
 
-    # The latest version of FLUIDOS Node manager requires Multus
-    echo "Install Multus"
+        # Add KUBECONFIG to .bashrc if it's not already present
+        grep -qxF 'export KUBECONFIG=/etc/rancher/k3s/k3s.yaml' ~/.bashrc || echo 'export KUBECONFIG=/etc/rancher/k3s/k3s.yaml' >> ~/.bashrc
 
-    helm repo add rke2-charts https://rke2-charts.rancher.io &>/dev/null
-    helm repo update &>/dev/null
+        # Add alias for kubectl to .bashrc only if it's not already present
+        grep -qxF 'alias k=kubectl' ~/.bashrc || echo 'alias k=kubectl' >> ~/.bashrc
 
-    # Apply Multus HelmChart directly
-    kubectl apply -f - <<EOF
+        # Add kubectl bash completion sourcing to .bashrc only if it's not already present
+        grep -qxF 'source <(kubectl completion bash)' ~/.bashrc || echo 'source <(kubectl completion bash)' >> ~/.bashrc
+
+        # Add kubectl completion for the alias 'k' only to .bashrc if it's not already present
+        grep -qxF 'complete -F __start_kubectl k' ~/.bashrc || echo 'complete -F __start_kubectl k' >> ~/.bashrc
+
+        # Wait until resources are available in the kube-system namespace
+        while true; do
+            pod_count=$(kubectl get pods -n kube-system --no-headers 2>/dev/null | wc -l)
+            if [ "$pod_count" -gt 0 ]; then
+                echo "Resources found in kube-system namespace."
+                break
+            else
+                echo "Waiting for resources to appear in kube-system namespace..."
+                sleep 5
+            fi
+        done
+
+        # Wait for all pods to become ready
+        kubectl wait --for=condition=ready pod -n kube-system --all --timeout=90s &>/dev/null
+
+
+
+        # The latest version of FLUIDOS Node manager requires Multus
+        echo "Install Multus"
+
+        helm repo add rke2-charts https://rke2-charts.rancher.io &>/dev/null
+        helm repo update &>/dev/null
+
+        # Apply Multus HelmChart directly
+        kubectl apply -f - <<EOF
 apiVersion: helm.cattle.io/v1
 kind: HelmChart
 metadata:
@@ -206,24 +206,24 @@ valuesContent: |-
         binDir: /var/lib/rancher/k3s/data/cni/
         kubeconfig: /var/lib/rancher/k3s/agent/etc/cni/net.d/multus.d/multus.kubeconfig
 EOF
-    # Wait until Multus resources are available in the kube-system namespace
-    while true; do
-        multus_pod_count=$(kubectl get pods -n kube-system -l app=rke2-multus --no-headers 2>/dev/null | wc -l)
-        if [ "$multus_pod_count" -gt 0 ]; then
-            echo "Multus pods found in kube-system namespace."
-            break
-        else
-            echo "Waiting for Multus pods to appear in kube-system namespace..."
-            sleep 5
-        fi
-    done
+        # Wait until Multus resources are available in the kube-system namespace
+        while true; do
+            multus_pod_count=$(kubectl get pods -n kube-system -l app=rke2-multus --no-headers 2>/dev/null | wc -l)
+            if [ "$multus_pod_count" -gt 0 ]; then
+                echo "Multus pods found in kube-system namespace."
+                break
+            else
+                echo "Waiting for Multus pods to appear in kube-system namespace..."
+                sleep 5
+            fi
+        done
 
-    # Wait for all Multus pods to become ready
-    kubectl wait --for=condition=ready pod -n kube-system -l app=rke2-multus --timeout=90s &>/dev/null
+        # Wait for all Multus pods to become ready
+        kubectl wait --for=condition=ready pod -n kube-system -l app=rke2-multus --timeout=90s &>/dev/null
 
-    echo "  - Patch Multus DaemonSet to remove CPU and memory limits"
-    # Patch the Multus DaemonSet to remove CPU and memory limits
-    kubectl patch daemonset -n kube-system multus --type=json -p='[
+        echo "  - Patch Multus DaemonSet to remove CPU and memory limits"
+        # Patch the Multus DaemonSet to remove CPU and memory limits
+        kubectl patch daemonset -n kube-system multus --type=json -p='[
     {
         "op": "remove",
         "path": "/spec/template/spec/containers/0/resources/limits/cpu"
@@ -234,102 +234,102 @@ EOF
     }
 ]' &>/dev/null
 
-    # Wait until Multus resources are available in the kube-system namespace
-    while true; do
-        multus_pod_count=$(kubectl get pods -n kube-system -l app=rke2-multus --no-headers 2>/dev/null | wc -l)
-        if [ "$multus_pod_count" -gt 0 ]; then
-            echo "Multus pods found in kube-system namespace."
-            break
-        else
-            echo "Waiting for Multus pods to appear in kube-system namespace..."
-            sleep 5
-        fi
-    done
+        # Wait until Multus resources are available in the kube-system namespace
+        while true; do
+            multus_pod_count=$(kubectl get pods -n kube-system -l app=rke2-multus --no-headers 2>/dev/null | wc -l)
+            if [ "$multus_pod_count" -gt 0 ]; then
+                echo "Multus pods found in kube-system namespace."
+                break
+            else
+                echo "Waiting for Multus pods to appear in kube-system namespace..."
+                sleep 5
+            fi
+        done
 
-    # Wait for all Multus pods to become ready
-    kubectl wait --for=condition=ready pod -n kube-system -l app=rke2-multus --timeout=90s &>/dev/null
+        # Wait for all Multus pods to become ready
+        kubectl wait --for=condition=ready pod -n kube-system -l app=rke2-multus --timeout=90s &>/dev/null
 
-    echo "  - Install CNI plugins"
+        echo "  - Install CNI plugins"
 
-    # Create the CNI bin directory if it doesn't exist
-    sudo mkdir -p /opt/cni/bin/ &>/dev/null
-    sudo mkdir -p /var/lib/rancher/k3s/data/cni &>/dev/null
+        # Create the CNI bin directory if it doesn't exist
+        sudo mkdir -p /opt/cni/bin/ &>/dev/null
+        sudo mkdir -p /var/lib/rancher/k3s/data/cni &>/dev/null
 
-    # Download the latest version of the CNI plugins
-    curl -s -L "https://github.com/containernetworking/plugins/releases/download/${CNI_PLUGINS_VERSION}/cni-plugins-linux-amd64-${CNI_PLUGINS_VERSION}.tgz" -o /tmp/cni-plugins.tgz
+        # Download the latest version of the CNI plugins
+        curl -s -L "https://github.com/containernetworking/plugins/releases/download/${CNI_PLUGINS_VERSION}/cni-plugins-linux-amd64-${CNI_PLUGINS_VERSION}.tgz" -o /tmp/cni-plugins.tgz
 
-    # Extract the CNI plugins temporarily
-    mkdir -p /tmp/cni-plugins &>/dev/null
-    tar -xzvf /tmp/cni-plugins.tgz -C /tmp/cni-plugins/ &>/dev/null
+        # Extract the CNI plugins temporarily
+        mkdir -p /tmp/cni-plugins &>/dev/null
+        tar -xzvf /tmp/cni-plugins.tgz -C /tmp/cni-plugins/ &>/dev/null
 
-    # Move only the required plugins to /opt/cni/bin/
-    for plugin in "${CNI_PLUGINS[@]}"; do
-        sudo cp /tmp/cni-plugins/$plugin /opt/cni/bin/
-        sudo cp /tmp/cni-plugins/$plugin /var/lib/rancher/k3s/data/cni
-    done
+        # Move only the required plugins to /opt/cni/bin/
+        for plugin in "${CNI_PLUGINS[@]}"; do
+            sudo cp /tmp/cni-plugins/$plugin /opt/cni/bin/
+            sudo cp /tmp/cni-plugins/$plugin /var/lib/rancher/k3s/data/cni
+        done
 
-    # Clean up the temporary files
-    rm -rf /tmp/cni-plugins &>/dev/null
-    rm /tmp/cni-plugins.tgz &>/dev/null
+        # Clean up the temporary files
+        rm -rf /tmp/cni-plugins &>/dev/null
+        rm /tmp/cni-plugins.tgz &>/dev/null
 
-    # Patch Multus DaemonSet to not schedule on Liqo nodes
-    kubectl patch daemonset multus -n kube-system --type='json' -p='[{"op": "add", "path": "/spec/template/spec/affinity", "value": {"nodeAffinity": {"requiredDuringSchedulingIgnoredDuringExecution": {"nodeSelectorTerms": [{"matchExpressions": [{"key": "liqo.io/type", "operator": "DoesNotExist"}]}]}}}}]' &>/dev/null
-    # Rollout the Multus DaemonSet
-    kubectl rollout restart daemonset multus -n kube-system &>/dev/null
+        # Patch Multus DaemonSet to not schedule on Liqo nodes
+        kubectl patch daemonset multus -n kube-system --type='json' -p='[{"op": "add", "path": "/spec/template/spec/affinity", "value": {"nodeAffinity": {"requiredDuringSchedulingIgnoredDuringExecution": {"nodeSelectorTerms": [{"matchExpressions": [{"key": "liqo.io/type", "operator": "DoesNotExist"}]}]}}}}]' &>/dev/null
+        # Rollout the Multus DaemonSet
+        kubectl rollout restart daemonset multus -n kube-system &>/dev/null
 
-    # Wait until Multus resources are available in the kube-system namespace
-    while true; do
-        multus_pod_count=$(kubectl get pods -n kube-system -l app=rke2-multus --no-headers 2>/dev/null | wc -l)
-        if [ "$multus_pod_count" -gt 0 ]; then
-            echo "Multus pods found in kube-system namespace."
-            break
-        else
-            echo "Waiting for Multus pods to appear in kube-system namespace..."
-            sleep 5
-        fi
-    done
+        # Wait until Multus resources are available in the kube-system namespace
+        while true; do
+            multus_pod_count=$(kubectl get pods -n kube-system -l app=rke2-multus --no-headers 2>/dev/null | wc -l)
+            if [ "$multus_pod_count" -gt 0 ]; then
+                echo "Multus pods found in kube-system namespace."
+                break
+            else
+                echo "Waiting for Multus pods to appear in kube-system namespace..."
+                sleep 5
+            fi
+        done
 
-    # Wait for all Multus pods to become ready
-    kubectl wait --for=condition=ready pod -n kube-system -l app=rke2-multus --timeout=90s &>/dev/null
+        # Wait for all Multus pods to become ready
+        kubectl wait --for=condition=ready pod -n kube-system -l app=rke2-multus --timeout=90s &>/dev/null
 
 
-    echo "Install MetalLB"
+        echo "Install MetalLB"
 
-    # Export the KUBECONFIG
-    export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
+        # Export the KUBECONFIG
+        export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
 
-    # Add the MetalLB Helm repository
-    helm repo add metallb https://metallb.github.io/metallb &>/dev/null
-    helm repo update &>/dev/null
+        # Add the MetalLB Helm repository
+        helm repo add metallb https://metallb.github.io/metallb &>/dev/null
+        helm repo update &>/dev/null
 
-    # Create metallb-memberlist secret
-    #kubectl create secret generic metallb-memberlist \
-    #    --from-literal=secretkey="$(openssl rand -base64 128)" \
-    #    -n metallb-system
+        # Create metallb-memberlist secret
+        #kubectl create secret generic metallb-memberlist \
+        #    --from-literal=secretkey="$(openssl rand -base64 128)" \
+        #    -n metallb-system
 
-    # Install MetalLB with Helm
-    echo "  - Install MetalLB with Helm"
-    helm install metallb metallb/metallb --namespace metallb-system --create-namespace &>/dev/null
+        # Install MetalLB with Helm
+        echo "  - Install MetalLB with Helm"
+        helm install metallb metallb/metallb --namespace metallb-system --create-namespace &>/dev/null
 
-    # Wait until MetalLB deployments are available in the metallb-system namespace
-    while true; do
-        metallb_deployment_count=$(kubectl get deployments -n metallb-system -l app.kubernetes.io/name=metallb --no-headers 2>/dev/null | wc -l)
-        if [ "$metallb_deployment_count" -gt 0 ]; then
-            echo "MetalLB deployments found in metallb-system namespace."
-            break
-        else
-            echo "Waiting for MetalLB deployments to appear in metallb-system namespace..."
-            sleep 5
-        fi
-    done
+        # Wait until MetalLB deployments are available in the metallb-system namespace
+        while true; do
+            metallb_deployment_count=$(kubectl get deployments -n metallb-system -l app.kubernetes.io/name=metallb --no-headers 2>/dev/null | wc -l)
+            if [ "$metallb_deployment_count" -gt 0 ]; then
+                echo "MetalLB deployments found in metallb-system namespace."
+                break
+            else
+                echo "Waiting for MetalLB deployments to appear in metallb-system namespace..."
+                sleep 5
+            fi
+        done
 
-    # Wait for MetalLB deployments to become available
-    kubectl wait --namespace metallb-system --for=condition=available deployment --selector=app.kubernetes.io/name=metallb --timeout=300s &>/dev/null
+        # Wait for MetalLB deployments to become available
+        kubectl wait --namespace metallb-system --for=condition=available deployment --selector=app.kubernetes.io/name=metallb --timeout=300s &>/dev/null
 
-    # Configure MetalLB
-    echo "  - Configure MetalLB"
-    # Setup address pool used by loadbalancers
-    cat <<EOF | kubectl apply -f - > /dev/null
+        # Configure MetalLB
+        echo "  - Configure MetalLB"
+        # Setup address pool used by loadbalancers
+        cat <<EOF | kubectl apply -f - > /dev/null
 apiVersion: metallb.io/v1beta1
 kind: IPAddressPool
 metadata:
@@ -349,11 +349,11 @@ metadata:
 EOF
 
 
-    # wait for the metallb controller to be ready
-    kubectl wait --namespace metallb-system --for=condition=available deployment --selector=app.kubernetes.io/name=controller --timeout=300s &>/dev/null
+        # wait for the metallb controller to be ready
+        kubectl wait --namespace metallb-system --for=condition=available deployment --selector=app.kubernetes.io/name=controller --timeout=300s &>/dev/null
 
-    echo "metallb installed and configured"
-
+        echo "metallb installed and configured"
+    fi
 fi
 
 # if liqo seems to be already installed, ask the user if they want to reinstall it
@@ -368,49 +368,59 @@ if command -v liqoctl status &>/dev/null; then
             echo "Installation aborted"
             exit 0
         fi
+    else
+
+        echo "Install Liqo"
+
+        # Export the KUBECONFIG
+        export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
+
+        # Install liqoctl
+        echo "  - Install liqoctl"
+        curl -s --fail -LS "https://github.com/liqotech/liqo/releases/download/$LIQOCTL_VERSION/liqoctl-linux-amd64.tar.gz" | tar -xz
+        if [ $? -ne 0 ]; then
+            echo "Error: Failed to download liqoctl"
+            exit 1
+        fi
+        sudo install -o root -g root -m 0755 liqoctl /usr/local/bin/liqoctl 2>/dev/null
+        if [ $? -ne 0 ]; then
+            echo "Error: Failed to install liqoctl"
+            exit 1
+        fi
+
+        # Clean up the temporary files
+        rm -f liqoctl 2>/dev/null
+        rm -f LICENSE 2>/dev/null
+
+        # Add liqoctl completion to .bashrc if it's not already present
+        if ! grep -qxF 'source <(liqoctl completion bash)' ~/.bashrc; then
+            echo 'source <(liqoctl completion bash)' >> ~/.bashrc
+        fi
+
+        # Install Liqo
+        echo "  - Install Liqo"
+        liqoctl install k3s --timeout 10m --cluster-name "$NODE_NAME"
+        if [ $? -ne 0 ]; then
+            echo "Error: Failed to install Liqo"
+            exit 1
+        fi
+
+
+        echo "Liqo installed"
+
+        # wait for the liqo pods to be ready
+        kubectl wait --for=condition=ready pod -n liqo --all --timeout=300s &>/dev/null
     fi
+fi
 
-    echo "Install Liqo"
+# if fluidos seems to be already installed, ask the user if they want to reinstall it
+if helm list -A | grep -q fluidos; then
+    read -p "FLUIDOS is already installed. Do you want to reinstall it? (Y/n) " -n 1 -r
 
-    # Export the KUBECONFIG
-    export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
-
-    # Install liqoctl
-    echo "  - Install liqoctl"
-    curl -s --fail -LS "https://github.com/liqotech/liqo/releases/download/$LIQOCTL_VERSION/liqoctl-linux-amd64.tar.gz" | tar -xz
-    if [ $? -ne 0 ]; then
-        echo "Error: Failed to download liqoctl"
-        exit 1
+    if [[ $REPLY =~ ^[Nn]$ ]]; then
+        echo "Installation aborted"
+        exit 0
     fi
-    sudo install -o root -g root -m 0755 liqoctl /usr/local/bin/liqoctl 2>/dev/null
-    if [ $? -ne 0 ]; then
-        echo "Error: Failed to install liqoctl"
-        exit 1
-    fi
-
-    # Clean up the temporary files
-    rm -f liqoctl 2>/dev/null
-    rm -f LICENSE 2>/dev/null
-
-    # Add liqoctl completion to .bashrc if it's not already present
-    if ! grep -qxF 'source <(liqoctl completion bash)' ~/.bashrc; then
-        echo 'source <(liqoctl completion bash)' >> ~/.bashrc
-    fi
-
-    # Install Liqo
-    echo "  - Install Liqo"
-    liqoctl install k3s --timeout 10m --cluster-name "$NODE_NAME"
-    if [ $? -ne 0 ]; then
-        echo "Error: Failed to install Liqo"
-        exit 1
-    fi
-
-
-    echo "Liqo installed"
-
-    # wait for the liqo pods to be ready
-    kubectl wait --for=condition=ready pod -n liqo --all --timeout=300s &>/dev/null
-
 
     # Labels to add to the nodes
     declare -A LABELS
@@ -455,16 +465,7 @@ if command -v liqoctl status &>/dev/null; then
         kubectl label node "$NODE_NAME" "$LABEL_KEY=$LABEL_VALUE" --overwrite
         echo "Label $LABEL_KEY=$LABEL_VALUE set on node $NODE_NAME"
     done
-fi
 
-# if fluidos seems to be already installed, ask the user if they want to reinstall it
-if helm list -A | grep -q fluidos; then
-    read -p "FLUIDOS is already installed. Do you want to reinstall it? (Y/n) " -n 1 -r
-
-    if [[ $REPLY =~ ^[Nn]$ ]]; then
-        echo "Installation aborted"
-        exit 0
-    fi
     # Install FLUIDOS
     echo "  - Installing FLUIDOS"
     helm upgrade --install node fluidos/node \
