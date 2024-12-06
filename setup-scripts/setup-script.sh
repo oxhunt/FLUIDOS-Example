@@ -142,7 +142,7 @@ if command -v k3s &>/dev/null; then
     read -p "K3s is already installed. Do you want to reinstall it? (Y/n) " -n 1 -r
 
     if [[ $REPLY =~ ^[Nn]$ ]]; then
-        echo "Skipping"
+        echo "\nSkipping"
     else
 
         # install k3s without the included loadbalancer, we use metallb instead
@@ -364,7 +364,7 @@ if command -v liqoctl status &>/dev/null; then
         read -p "Liqo is already installed. Do you want to reinstall it? (Y/n) " -n 1 -r
 
         if [[ $REPLY =~ ^[Nn]$ ]]; then
-            echo "Skipping"
+            echo "\nSkipping"
         fi
     else
 
@@ -416,7 +416,7 @@ if helm list -A | grep -q fluidos; then
     read -p "FLUIDOS is already installed. Do you want to reinstall it? (Y/n) " -n 1 -r
 
     if [[ $REPLY =~ ^[Nn]$ ]]; then
-        echo "Skipping"
+        echo "\nSkipping"
     fi
 
     # Labels to add to the nodes
