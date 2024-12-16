@@ -1,15 +1,9 @@
 #!/bin/bash
 
-# commands I've put here for reference, I have used them to build and push the images to my dockerhub
+# Set up buildx builder
+docker buildx create --use
 
-docker build -t oxhunt/camera-streamer:latest ../containers/camera-streamer
-docker push oxhunt/camera-streamer:latest
+# Build and push multi-arch images
+docker buildx build --platform linux/amd64,linux/arm64 -t oxhunt/camera-streamer:latest ../containers/camera-streamer --push
+docker buildx build --platform linux/amd64,linux/arm64 -t oxhunt/image-recognition:latest ../containers/image-recognition --push
 
-docker build -t oxhunt/image-recognition:latest ../containers/image-recognition
-docker push oxhunt/image-recognition:latest
-
-kubectl delete -f ../k8s_manifests
-sleep 20
-kubectl apply -f ../k8s_manifests
-
-kubectl get pods --watch

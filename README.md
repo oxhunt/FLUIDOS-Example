@@ -1,12 +1,25 @@
 # FLUIDOS-IDG-Example
 
+## Missing Files
+Container `image-recognition` is missing the file `weights.cfg` because it is too big to be included in the repository.
+You can download it from here: `https://github.com/patrick013/Object-Detection---Yolov3/raw/refs/heads/master/model/yolov3.weights`
 
 ## Installing K3s, Liqo and FLUIDOS
 run: `./setup-script.sh  [install|uninstall]`
 You can find more details in the script itself as comments.
 
 ## Building Images
-`./tools/my-build-script.sh`
+requires docker to be installed.
+```
+cd ./tools/
+./my-build-script.sh
+```
+
+## Installing Docker
+```
+cd setup-scripts
+./install-docker.sh
+```
 
 ## Steps executed to setup the .venv
 ```
