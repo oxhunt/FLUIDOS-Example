@@ -4,16 +4,11 @@
 # if you use this script, make sure that the ip address of the machine does not change or it could break the metallb configuration
 
 
-# Convert to lowercase and remove special characters to make the string compatible with Liqo
-clean_string(){
-    echo "$1" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9_-]//g'
-}
-
-
-NODE_NAME=$(clean_string $(hostname)) # you can change this to a custom name, but ensure it is lowercase and without special characters
+NODE_NAME=$(hostname)
 HOST_INTERFACE="ens18" # Change this to the name of the host interface
 LIQOCTL_VERSION="v0.10.0"
 FLUIDOS_VERSION="0.1.1"
+K9S_VERSION="v0.32.7"
 NODE_IP=$(ip a | grep $HOST_INTERFACE | grep inet | awk '{print $2}' | cut -d '/' -f 1)
 REAR_PORT=30000
 export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
@@ -35,11 +30,58 @@ THIRD_OCTET=$(printf "%d" "'$NODE_NAME" | awk '{print $1 % 255}')
 CNI_PLUGINS_VERSION="v1.5.1"
 CNI_PLUGINS=("bridge" "loopback" "host-device" "macvlan")
 
+
+
+
+HELP_TEXT="Usage: $0 "install" or "uninstall" or "help"\n Add --skip-confirm at the end to skip the confirmation prompts\n  ex. $0 install --skip-confirm\n"
 # check that a commandline argument is received
 if [ $# -lt 1 ]; then
-    echo "Usage: $0 "install" or "uninstall""
+    echo "$HELP_TEXT"
     exit 1
 fi
+
+SKIP_CONFIRM=false
+if [ "$2" == "--skip-confirm" ]; then
+    SKIP_CONFIRM=true
+fi
+
+
+# validate the commandline arguments and variables
+
+# the first, second and third octet are a number between 0 and 255
+if [[ ! "$FIRST_OCTET" =~ ^[0-9]+$ ]] || [[ ! "$SECOND_OCTET" =~ ^[0-9]+$ ]] || [[ ! "$THIRD_OCTET" =~ ^[0-9]+$ ]]; then
+    echo "Error: The first, second and third octet must be a number between 0 and 255"
+    exit 1
+fi
+
+# ENABLE_LOCAL_DISCOVERY must be a boolean
+if [[ "$ENABLE_LOCAL_DISCOVERY" != "true" && "$ENABLE_LOCAL_DISCOVERY" != "false" ]]; then
+    echo "Error: ENABLE_LOCAL_DISCOVERY must be either 'true' or 'false'"
+    exit 1
+fi
+
+# INTERFACE must be a valid network interface present on the machine
+if ! ip a | grep -q $HOST_INTERFACE; then
+    echo "Error: INTERFACE is not a valid network interface"
+    exit 1
+fi
+
+# NODE_IP must be a valid IP address
+if ! [[ "$NODE_IP" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+    echo "Error: NODE_IP is not a valid IP address"
+    exit 1
+fi
+
+# Convert to lowercase and remove special characters to make the string compatible with Liqo
+clean_string(){
+    echo "$1" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9_-]//g'
+}
+
+
+NODE_NAME=$(clean_string "$NODE_NAME") # you can change this to a custom name, but ensure it is lowercase and without special characters
+
+
+
 
 FLUIDOS_uninstall(){
     # Uninstall FLUIDOS
@@ -87,17 +129,65 @@ uninstall_k3s(){
     # Uninstall K3s
     echo "  - Uninstall K3s"
     /usr/local/bin/k3s-uninstall.sh &>/dev/null
+    sudo apt uninstall k9s -y &>/dev/null
 
     echo "Uninstall complete"
     exit 0
 }
 
 if [ "$1" == "uninstall" ]; then
-    FLUIDOS_uninstall
-    liqo_uninstall
-    uninstall_metallb
-    uninstall_multus
-    uninstall_k3s
+    # ask for confirmation before uninstalling FLUIDOS
+    if [ "$SKIP_CONFIRM" == false ]; then
+        read -p "Do you want to uninstall FLUIDOS? (Y/n) " -n 1 -r
+        if [[ $REPLY =~ ^[Yy]$ ]]; then
+            FLUIDOS_uninstall
+        else
+            echo
+        fi
+    fi
+
+    # ask for confirmation before uninstalling the other components
+    if [ "$SKIP_CONFIRM" == false ]; then
+        read -p "Do you want to uninstall Liqo? (Y/n) " -n 1 -r
+        if [[ $REPLY =~ ^[Yy]$ ]]; then
+            liqo_uninstall
+        else
+            echo
+        fi
+    fi
+
+    # ask for confirmation before uninstalling metallb
+    if [ "$SKIP_CONFIRM" == false ]; then
+        read -p "Do you want to uninstall MetalLB? (Y/n) " -n 1 -r
+        if [[ $REPLY =~ ^[Yy]$ ]]; then
+            uninstall_metallb
+        else
+            echo
+        fi
+    fi
+    
+    # ask for confirmation before uninstalling multus
+    if [ "$SKIP_CONFIRM" == false ]; then
+        read -p "Do you want to uninstall Multus? (Y/n) " -n 1 -r
+        if [[ $REPLY =~ ^[Yy]$ ]]; then
+            uninstall_multus
+        else
+            echo
+        fi
+    fi
+
+    # ask for confirmation before uninstalling k3s
+    if [ "$SKIP_CONFIRM" == false ]; then
+        read -p "Do you want to uninstall K3s? (Y/n) " -n 1 -r
+        if [[ $REPLY =~ ^[Yy]$ ]]; then
+            uninstall_k3s
+        else
+            echo
+        fi
+    fi
+    exit 0
+elif [ "$1" == "help" ]; then
+    echo "$HELP_TEXT"
     exit 0
 fi
 
@@ -141,6 +231,7 @@ k3s_install(){
     # Add kubectl completion for the alias 'k' only to .bashrc if it's not already present
     grep -qxF 'complete -F __start_kubectl k' ~/.bashrc || echo 'complete -F __start_kubectl k' >> ~/.bashrc
 
+
     # Wait until resources are available in the kube-system namespace
     while true; do
         pod_count=$(kubectl get pods -n kube-system --no-headers 2>/dev/null | wc -l)
@@ -155,16 +246,26 @@ k3s_install(){
 
     # Wait for all pods to become ready
     kubectl wait --for=condition=ready pod -n kube-system --all --timeout=90s &>/dev/null
+
+    # set nano as the default editor for kubectl if it's not already set
+    kubectl config set-context --current --editor "nano" &>/dev/null
+
+    wget "https://github.com/derailed/k9s/releases/download/$K9S_VERSION/k9s_linux_amd64.deb" && sudo apt install ./k9s_linux_amd64.deb && rm k9s_linux_amd64.deb
 }
 
 
-# if k3s is already installed, ask the user if they want to reinstall it
+# if k3s is already installed, ask the user if they want to reinstall it. 
 if command -v kubectl &>/dev/null && kubectl get pods -n kube-system &>/dev/null; then
-    read -p "K3s is already installed and running. Do you want to reinstall it? (Y/n) " -n 1 -r
-    if [[ $REPLY =~ ^[Nn]$ ]]; then
+    # If skip-confirm is set to true, do not reinstall k3s
+    if [ "$SKIP_CONFIRM" == true ]; then
         echo "Skipping K3s installation."
     else
-        k3s_install
+        read -p "K3s is already installed and running. Do you want to reinstall it? (Y/n) " -n 1 -r
+        if [[ $REPLY =~ ^[Nn]$ ]]; then
+            echo "Skipping K3s installation."
+        else
+            k3s_install
+        fi
     fi
 else
     k3s_install
@@ -291,11 +392,16 @@ EOF
 
 # verify if multus is already installed
 if kubectl get daemonset -n kube-system multus &>/dev/null; then
-    read -p "Multus is already installed and running. Do you want to reinstall it? (Y/n) " -n 1 -r
-    if [[ $REPLY =~ ^[Nn]$ ]]; then
+    # if already installed, ask the user if they want to reinstall it, but only if skip-confirm is not set to true
+    if [ "$SKIP_CONFIRM" == true ]; then
         echo "Skipping Multus installation."
     else
-        install_multus
+        read -p "Multus is already installed and running. Do you want to reinstall it? (Y/n) " -n 1 -r
+        if [[ $REPLY =~ ^[Nn]$ ]]; then
+            echo "Skipping Multus installation."
+        else
+            install_multus
+        fi
     fi
 else
     install_multus
@@ -368,12 +474,17 @@ EOF
 # if metallb seems to be already installed, ask the user if they want to reinstall it
 
 if helm list -A | grep -q metallb; then
-    read -p "MetalLB is already installed. Do you want to reinstall it? (Y/n) " -n 1 -r
-
-    if [[ $REPLY =~ ^[Nn]$ ]]; then
-        echo "\nSkipping"
+    # if already installed, ask the user if they want to reinstall it, but only if skip-confirm is not set to true
+    if [ "$SKIP_CONFIRM" == true ]; then
+        echo "Skipping MetalLB installation."
     else
-        metallb_install
+        read -p "MetalLB is already installed. Do you want to reinstall it? (Y/n) " -n 1 -r
+
+        if [[ $REPLY =~ ^[Nn]$ ]]; then
+            echo "\nSkipping"
+        else
+            metallb_install
+        fi
     fi
 else
     metallb_install
@@ -426,13 +537,17 @@ liqo_install(){
 # if liqo seems to be already installed, ask the user if they want to reinstall it
 if command -v liqoctl status &>/dev/null; then
     LIQO_STATUS=$(liqoctl status 2>/dev/null)
-
     # Check if the status is not empty
     if [ -n "$LIQO_STATUS" ]; then
-        read -p "Liqo is already installed. Do you want to reinstall it? (Y/n) " -n 1 -r
+        # if already installed, ask the user if they want to reinstall it, but only if skip-confirm is not set to true
+        if [ "$SKIP_CONFIRM" == true ]; then
+            echo "Skipping Liqo installation."
+        else
+            read -p "Liqo is already installed. Do you want to reinstall it? (Y/n) " -n 1 -r
 
-        if [[ $REPLY =~ ^[Nn]$ ]]; then
-            echo "\nSkipping"
+            if [[ $REPLY =~ ^[Nn]$ ]]; then
+                echo "\nSkipping"
+            fi
         fi
     else
         liqo_install
@@ -445,11 +560,16 @@ fi
 
 # if fluidos seems to be already installed, ask the user if they want to reinstall it
 if helm list -A | grep -q fluidos; then
-    read -p "FLUIDOS is already installed. Do you want to reinstall it? (Y/n) " -n 1 -r
+    # if already installed, ask the user if they want to reinstall it, but only if skip-confirm is not set to true
+    if [ "$SKIP_CONFIRM" == true ]; then
+        echo "Skipping FLUIDOS installation."
+    else
+        read -p "FLUIDOS is already installed. Do you want to reinstall it? (Y/n) " -n 1 -r
 
-    if [[ $REPLY =~ ^[Nn]$ ]]; then
-        echo "\nSkipping"
-        exit 0
+        if [[ $REPLY =~ ^[Nn]$ ]]; then
+            echo "\nSkipping"
+            exit 0
+        fi
     fi
 fi
 
