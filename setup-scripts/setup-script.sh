@@ -33,7 +33,11 @@ CNI_PLUGINS=("bridge" "loopback" "host-device" "macvlan")
 
 
 
-HELP_TEXT="Usage: $0 "install" or "uninstall" or "help"\n Add --skip-confirm at the end to skip the confirmation prompts\n  ex. $0 install --skip-confirm\n"
+HELP_TEXT="
+Usage: $0 "install" or "uninstall" or "help"
+    Add --skip-confirm at the end to skip the confirmation prompts:  (ex. $0 install --skip-confirm)
+"
+
 # check that a commandline argument is received
 if [ $# -lt 1 ]; then
     echo "$HELP_TEXT"
@@ -144,7 +148,10 @@ if [ "$1" == "uninstall" ]; then
         else
             echo
         fi
+    else
+        FLUIDOS_uninstall
     fi
+
 
     # ask for confirmation before uninstalling the other components
     if [ "$SKIP_CONFIRM" == false ]; then
@@ -154,6 +161,8 @@ if [ "$1" == "uninstall" ]; then
         else
             echo
         fi
+    else
+        liqo_uninstall
     fi
 
     # ask for confirmation before uninstalling metallb
@@ -164,6 +173,8 @@ if [ "$1" == "uninstall" ]; then
         else
             echo
         fi
+    else
+        uninstall_metallb
     fi
     
     # ask for confirmation before uninstalling multus
@@ -174,6 +185,8 @@ if [ "$1" == "uninstall" ]; then
         else
             echo
         fi
+    else
+        uninstall_multus
     fi
 
     # ask for confirmation before uninstalling k3s
@@ -184,6 +197,8 @@ if [ "$1" == "uninstall" ]; then
         else
             echo
         fi
+    else
+        uninstall_k3s
     fi
     exit 0
 elif [ "$1" == "help" ]; then
@@ -250,7 +265,9 @@ k3s_install(){
     # set nano as the default editor for kubectl if it's not already set
     kubectl config set-context --current --editor "nano" &>/dev/null
 
-    wget "https://github.com/derailed/k9s/releases/download/$K9S_VERSION/k9s_linux_amd64.deb" && sudo apt install ./k9s_linux_amd64.deb && rm k9s_linux_amd64.deb
+    wget "https://github.com/derailed/k9s/releases/download/$K9S_VERSION/k9s_linux_amd64.deb" 
+    sudo apt install ./k9s_linux_amd64.deb 
+    sudo rm k9s_linux_amd64.deb
 }
 
 
