@@ -596,6 +596,14 @@ LABELS["node-role.fluidos.eu/worker"]="true"
 LABELS["node-role.fluidos.eu/resources"]="true"
 
 
+# Label the node
+echo "  - Labeling the node"
+for LABEL_KEY in "${!LABELS[@]}"; do
+    LABEL_VALUE=${LABELS[$LABEL_KEY]}
+    kubectl label node "$NODE_NAME" "$LABEL_KEY=$LABEL_VALUE" --overwrite
+    echo "Label $LABEL_KEY=$LABEL_VALUE set on node $NODE_NAME"
+done
+
 echo "Install Fluidos"
 
 # Export the KUBECONFIG
@@ -626,13 +634,6 @@ fi
 # replacing the interface in the consumer-values.yaml file
 #sed -i "s/netInterface: \"eth0\"/netInterface: \"$HOST_INTERFACE\"/" consumer-values.yaml
 
-# Label the node
-echo "  - Labeling the node"
-for LABEL_KEY in "${!LABELS[@]}"; do
-    LABEL_VALUE=${LABELS[$LABEL_KEY]}
-    kubectl label node "$NODE_NAME" "$LABEL_KEY=$LABEL_VALUE" --overwrite
-    echo "Label $LABEL_KEY=$LABEL_VALUE set on node $NODE_NAME"
-done
 
 # Install FLUIDOS
 echo "  - Installing FLUIDOS"

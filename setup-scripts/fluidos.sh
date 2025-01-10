@@ -2,6 +2,19 @@
 
 fluidos() {
     if [ "$1" == "install" ]; then
+        # Labels to add to the nodes
+        declare -A LABELS
+        LABELS["node-role.fluidos.eu/worker"]="true"
+        LABELS["node-role.fluidos.eu/resources"]="true"
+
+
+        # Label the node
+        echo "  - Labeling the node"
+        for LABEL_KEY in "${!LABELS[@]}"; do
+            LABEL_VALUE=${LABELS[$LABEL_KEY]}
+            kubectl label node "$NODE_NAME" "$LABEL_KEY=$LABEL_VALUE" --overwrite
+            echo "Label $LABEL_KEY=$LABEL_VALUE set on node $NODE_NAME"
+        done
         echo "Installing FLUIDOS"
         helm repo add fluidos https://fluidos-project.github.io/node/
         helm repo update
