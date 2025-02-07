@@ -1,5 +1,66 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: fl-orchestrator-clusterrole
+rules:
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["list", "watch", "patch"]
+- apiGroups: ["apiextensions.k8s.io"]
+  resources: ["customresourcedefinitions"]
+  verbs: ["list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: fl-orchestrator-clusterrolebinding
+subjects:
+- kind: ServiceAccount
+  name: fl-orchestrator-sa
+  namespace: default
+roleRef:
+  kind: ClusterRole
+  name: fl-orchestrator-clusterrole
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: fl-orchestrator-sa
+  namespace: default
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: fl-orchestrator-rolebinding
+  namespace: default
+subjects:
+- kind: ServiceAccount
+  name: fl-orchestrator-sa
+  namespace: default
+roleRef:
+  kind: Role
+  name: fl-orchestrator-role
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  namespace: default
+  name: fl-orchestrator-role
+rules:
+- apiGroups: [""]
+  resources: ["events"]
+  verbs: ["create", "patch", "update"]
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: fl-orchestrator-sa
+  namespace: default
+---
 apiVersion: apps/v1
-kind: DaemonSet
+kind: Deployment
 metadata:
   name: fl-orchestrator
   namespace: default
@@ -12,73 +73,9 @@ spec:
       labels:
         app: fl-orchestrator
     spec:
+      # we set the pod to host network to monitor for changes in the host ip address
+      hostNetwork: true
+      serviceAccountName: fl-orchestrator-sa
       containers:
       - name: fl-orchestrator
         image: oxhunt/fl-orchestrator:latest
-        volumeMounts:
-        - name: kubeconfig-volume
-          mountPath: /root/.kube
-          subPath: config
-      volumes:
-      - name: kubeconfig-volume
-        configMap:
-          name: kubeconfig
-  updateStrategy:
-    type: RollingUpdate
-  minReadySeconds: 5
-  revisionHistoryLimit: 1
-
----
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: kubeconfig
-  namespace: default
-data:
-  config: |
-    apiVersion: v1
-    clusters:
-    - cluster:
-        certificate-authority-data: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUJkakNDQVIyZ0F3SUJBZ0lCQURBS0JnZ3Foa2pPUFFRREFqQWpNU0V3SHdZRFZRUUREQmhyTTNNdGMyVnkKZG1WeUxXTmhRREUzTXpZME9Ua3lNalV3SGhjTk1qVXdNVEV3TURnMU16UTFXaGNOTXpVd01UQTRNRGcxTXpRMQpXakFqTVNFd0h3WURWUVFEREJock0zTXRjMlZ5ZG1WeUxXTmhRREUzTXpZME9Ua3lNalV3V1RBVEJnY3Foa2pPClBRSUJCZ2dxaGtqT1BRTUJCd05DQUFRa0duSnJZZ2NHcFh0WWpkbGQ3SnZPY0tEVjY5d2FQNVhtcUxldS9jNFAKYlJzVkJaaStlYnhkRGxTRjJya0IzbG45U0RMbWpQS2ZtTFhjSWtNZGg0TExvMEl3UURBT0JnTlZIUThCQWY4RQpCQU1DQXFRd0R3WURWUjBUQVFIL0JBVXdBd0VCL3pBZEJnTlZIUTRFRmdRVWhXVXF5TjBVMGp3U3Y2ZU5tR0F6CjBINzBwNnd3Q2dZSUtvWkl6ajBFQXdJRFJ3QXdSQUlnSVhRTWhYMDd5RE1nZ1hMeUpDUjJnZ0xpdC91cTJscHoKSURpMUpjMm03d2dDSUJiM2YyblZheHh6Y1RwMmphclJFRXJSVndtcGZnWVl4enBRMnZwT1AyNXoKLS0tLS1FTkQgQ0VSVElGSUNBVEUtLS0tLQo=
-        server: https://127.0.0.1:6443
-      name: default
-    contexts:
-    - context:
-        cluster: default
-        user: default
-      name: default
-    current-context: default
-    kind: Config
-    preferences: {}
-    users:
-    - name: default
-      user:
-        client-certificate-data: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUJrRENDQVRlZ0F3SUJBZ0lJRTVQOVN0ZlB5b3N3Q2dZSUtvWkl6ajBFQXdJd0l6RWhNQjhHQTFVRUF3d1kKYXpOekxXTnNhV1Z1ZEMxallVQXhOek0yTkRrNU1qSTFNQjRYRFRJMU1ERXhNREE0TlRNME5Wb1hEVEkyTURFeApNREE0TlRNME5Wb3dNREVYTUJVR0ExVUVDaE1PYzNsemRHVnRPbTFoYzNSbGNuTXhGVEFUQmdOVkJBTVRESE41CmMzUmxiVHBoWkcxcGJqQlpNQk1HQnlxR1NNNDlBZ0VHQ0NxR1NNNDlBd0VIQTBJQUJDd0hkWU4zQmcrR1BxU1UKWXJMVnlYVnBRNDM1NnVzV04xenhWT3IrMHQvNEVDZEtybDVwLzZFVGdUamZJUUtSdmJjQmtIQ2xqZjJsdGtwawpiUlpJYVBPalNEQkdNQTRHQTFVZER3RUIvd1FFQXdJRm9EQVRCZ05WSFNVRUREQUtCZ2dyQmdFRkJRY0RBakFmCkJnTlZIU01FR0RBV2dCVGpZa1RDbmk0OGIyNm9xeVBpWDZhbkxrazdnVEFLQmdncWhrak9QUVFEQWdOSEFEQkUKQWlBT3hUUHVneHdiOVR3MW9rN09RQ1ZsZHJHWkpNMy9aL2VrMmNwNWYrUlp1d0lnZXE0MVJnVTBrcVNMVVBXSApKZGQ3VHNwZ0JVR2daWUMzbmFkeFdyK0ViV289Ci0tLS0tRU5EIENFUlRJRklDQVRFLS0tLS0KLS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUJlRENDQVIyZ0F3SUJBZ0lCQURBS0JnZ3Foa2pPUFFRREFqQWpNU0V3SHdZRFZRUUREQmhyTTNNdFkyeHAKWlc1MExXTmhRREUzTXpZME9Ua3lNalV3SGhjTk1qVXdNVEV3TURnMU16UTFXaGNOTXpVd01UQTRNRGcxTXpRMQpXakFqTVNFd0h3WURWUVFEREJock0zTXRZMnhwWlc1MExXTmhRREUzTXpZME9Ua3lNalV3V1RBVEJnY3Foa2pPClBRSUJCZ2dxaGtqT1BRTUJCd05DQUFTL0UxU01FNVVSc0xFZ0RFK0NRN2k4WXprNzNxY0xzLzFYc1RFWTc2YkMKU1VqTlMwOTYxNlhOa3hydHo5Q2pqdXVidndGWHIyUVpSUUpGaldZeExrK2dvMEl3UURBT0JnTlZIUThCQWY4RQpCQU1DQXFRd0R3WURWUjBUQVFIL0JBVXdBd0VCL3pBZEJnTlZIUTRFRmdRVTQySkV3cDR1UEc5dXFLc2o0bCttCnB5NUpPNEV3Q2dZSUtvWkl6ajBFQXdJRFNRQXdSZ0loQUk1UG1uMVBFS1JsN250dUdUN3BBcjdIZ2loSHdwQ1IKM1VEL2w4SUdYNWoyQWlFQTVRbXNBRTVvVnA0MlJLRVJna0hUWjdHTDBkdG1UN2dxR3ZTQXN1N1ZlODg9Ci0tLS0tRU5EIENFUlRJRklDQVRFLS0tLS0K
-        client-key-data: LS0tLS1CRUdJTiBFQyBQUklWQVRFIEtFWS0tLS0tCk1IY0NBUUVFSUh1UEI4Y0l2alhMaUNSUnJrZ29qUUV4TTFWQVdzU0FKMWpXd0tBa2JpdG1vQW9HQ0NxR1NNNDkKQXdFSG9VUURRZ0FFTEFkMWczY0dENFkrcEpSaXN0WEpkV2xEamZucTZ4WTNYUEZVNnY3UzMvZ1FKMHF1WG1uLwpvUk9CT044aEFwRzl0d0dRY0tXTi9hVzJTbVJ0Rmtobzh3PT0KLS0tLS1FTkQgRUMgUFJJVkFURSBLRVktLS0tLQo=
-
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRole
-metadata:
-  name: fl-orchestrator-role
-rules:
-- apiGroups: [""]
-  resources: ["pods"]
-  verbs: ["get", "list", "watch"]
-- apiGroups: ["apiextensions.k8s.io"]
-  resources: ["customresourcedefinitions"]
-  verbs: ["get", "list", "watch"]
-
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRoleBinding
-metadata:
-  name: fl-orchestrator-binding
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: ClusterRole
-  name: fl-orchestrator-role
-subjects:
-- kind: ServiceAccount
-  name: default
-  namespace: default
