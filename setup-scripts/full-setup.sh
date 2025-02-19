@@ -26,5 +26,5 @@ elif [ "$1" == "uninstall" ]; then
     k3s uninstall
 else
     echo "Usage: $0 {install|uninstall}"
-    exit 1
+    return 1
 fi

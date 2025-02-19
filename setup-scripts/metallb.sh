@@ -29,6 +29,6 @@ EOF
         helm uninstall metallb --namespace metallb-system
     else
         echo "Usage: metallb {install|uninstall}"
-        exit 1
+        return 1
     fi
 }

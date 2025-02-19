@@ -29,6 +29,6 @@ EOF
         helm uninstall multus -n kube-system
     else
         echo "Usage: multus {install|uninstall}"
-        exit 1
+        return 1
     fi
 }

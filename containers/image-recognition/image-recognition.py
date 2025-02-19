@@ -6,6 +6,10 @@ import time
 import os
 import sys
 import warnings
+import logging
+
+logging.basicConfig(level=logging.INFO)
+
 
 # Suppress deprecation warnings
 warnings.filterwarnings("ignore", category=DeprecationWarning)
@@ -16,7 +20,7 @@ port = os.getenv('MQTT_PORT')
 processing_interval = 5
 
 if not broker or not port:
-    print("Error: MQTT_BROKER and MQTT_PORT environment variables must be set.", file=sys.stderr)
+    logging.error("Error: MQTT_BROKER and MQTT_PORT environment variables must be set.")
     sys.exit(1)
 
 port = int(port)
@@ -31,14 +35,14 @@ try:
     classes = []
     with open("coco.names", "r") as f:
         classes = [line.strip() for line in f.readlines()]
-    print("YOLO model loaded successfully.", file=sys.stderr)
+    logging.error("YOLO model loaded successfully.")
 except Exception as e:
-    print(f"Error loading YOLO model: {e}", file=sys.stderr)
+    logging.error(f"Error loading YOLO model: {e}")
     sys.exit(1)
 
 # Initialize MQTT client
 def on_connect(client, userdata, flags, rc):
-    print("Connected with result code " + str(rc), file=sys.stderr)
+    logging.info("Connected with result code " + str(rc))
     client.subscribe(subscribe_topic)
 
 last_processed_time = 0
@@ -51,16 +55,16 @@ def on_message(client, userdata, msg):
 
     last_processed_time = current_time
 
-    print("Message received on topic " + msg.topic, file=sys.stderr)
+    logging.info("Message received on topic " + msg.topic)
 
     # Decode the image
     try:
         jpg_original = base64.b64decode(msg.payload)
         jpg_as_np = np.frombuffer(jpg_original, dtype=np.uint8)
         frame = cv2.imdecode(jpg_as_np, flags=1)
-        print("Image decoded successfully.", file=sys.stderr)
+        logging.debug("Image decoded successfully.")
     except Exception as e:
-        print(f"Error decoding image: {e}", file=sys.stderr)
+        logging.error(f"Error decoding image: {e}")
         return
 
     # Detect objects
@@ -69,9 +73,9 @@ def on_message(client, userdata, msg):
         blob = cv2.dnn.blobFromImage(frame, 0.00392, (416, 416), (0, 0, 0), True, crop=False)
         net.setInput(blob)
         outs = net.forward(output_layers)
-        print("Object detection performed successfully.", file=sys.stderr)
+        logging.debug("Object detection performed successfully.")
     except Exception as e:
-        print(f"Error during object detection: {e}", file=sys.stderr)
+        logging.error(f"Error during object detection: {e}")
         return
 
     # Process detections
@@ -104,7 +108,7 @@ def on_message(client, userdata, msg):
             detected_objects.append(label)
 
     # Debugging: Print detected objects
-    print("Detected objects:", detected_objects, file=sys.stderr)
+    logging.info(f"Detected objects: {detected_objects}")
 
     # Publish detected objects
     if detected_objects:
@@ -112,19 +116,24 @@ def on_message(client, userdata, msg):
         result = client.publish(publish_topic, message)
         status = result.rc
         if status == 0:
-            print(f"Sent `{message}` to topic `{publish_topic}`", file=sys.stderr)
+            logging.info(f"Sent `{message}` to topic `{publish_topic}`")
         else:
-            print(f"Failed to send message to topic {publish_topic}", file=sys.stderr)
+            logging.error(f"Failed to send message to topic {publish_topic}")
 
-client = mqtt.Client()
-client.on_connect = on_connect
-client.on_message = on_message
 
-try:
-    client.connect(broker, port, 60)
-    print("Connected to MQTT broker.", file=sys.stderr)
-except Exception as e:
-    print(f"Error connecting to MQTT broker: {e}", file=sys.stderr)
-    sys.exit(1)
+if __name__ == "__main__":
+    client = mqtt.Client()
+    client.on_connect = on_connect
+    client.on_message = on_message
 
-client.loop_forever()
+    success=False
+    while not success:
+        try:
+            client.connect(broker, port, 60)
+            logging.info("Connected to MQTT broker.")
+            success=True
+        except Exception as e:
+            logging.error(f"Error connecting to MQTT broker: {e}")
+            sleep(5)
+
+    client.loop_forever()

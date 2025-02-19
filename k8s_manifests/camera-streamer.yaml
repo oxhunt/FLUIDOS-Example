@@ -31,6 +31,10 @@ spec:
         securityContext:
           privileged: true
         env:
+        - name: SECONDS_BETWEEN_FRAMES
+          value: "10"
+        - name: VIDEO_TO_PLAY
+          value: "video.mp4"
         - name: MQTT_PORT
           value: "1883"
         - name: MQTT_BROKER

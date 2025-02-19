@@ -30,6 +30,6 @@ k3s() {
         sudo apt remove k9s -y
     else
         echo "Usage: k3s {install|uninstall}"
-        exit 1
+        return 1
     fi
 }
