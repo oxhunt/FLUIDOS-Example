@@ -8,9 +8,10 @@ prometheus() {
         helm upgrade --install --namespace monitoring prometheus prometheus-community/prometheus \
             --set server.service.type=NodePort \
             --set server.service.nodePort=30090 \
-            --set server.global.scrape_interval=1s \
-            --set server.global.scrape_timeout=1s \
-            --set server.retention=3h # decreasing retention from 15d to avoid overloading the ram and disk
+            --set server.global.scrape_interval=5s \
+            --set server.global.scrape_timeout=3s \
+            --set server.retentionSize=1GB \
+            --set server.retention=1h 
             #--set server.global.evaluationInterval=10s
     elif [ "$1" == "uninstall" ]; then
         echo "Uninstalling Multus"

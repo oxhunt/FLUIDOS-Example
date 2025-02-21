@@ -38,3 +38,11 @@ spec:
           value: "1883"
         - name: MQTT_BROKER
           value: "mosquitto-service"
+        volumeMounts:
+        - name: yolomodel-volume
+          mountPath: /yolomodel.pt
+      volumes:
+      - name: yolomodel-volume
+        hostPath:
+          path: /home/ubuntu/FLUIDOS-Example/files/yolo11n.pt
+          type: File

@@ -18,7 +18,7 @@ RUN pip install --no-cache-dir opencv-python mediapipe opencv-python paho-mqtt
 
 
 # Copy the current directory contents into the container at /usr/src/app
-COPY . .
+COPY ./camera-streamer.py .
 
 # Run image-recognition.py when the container launches
 CMD ["python", "./camera-streamer.py"]

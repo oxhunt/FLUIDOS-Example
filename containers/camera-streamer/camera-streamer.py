@@ -12,7 +12,7 @@ import logging
 logging.basicConfig(level=logging.INFO)
 
 
-SECONDS_BETWEEN_FRAMES = int(os.getenv('SECONDS_BETWEEN_FRAMES', "5"))
+
 
 # Function to connect to the broker with retry logic
 def connect_to_broker(broker, port):
@@ -41,7 +41,28 @@ def connect_to_camera():
     logging.error("Error: Unable to connect to camera after multiple retries.")
     return None
     
-    
+def check_video_file(video_path):
+    if not os.path.exists(video_path):
+        logging.error(f"Error: The video file {video_path} does not exist.")
+        return False
+
+    # check that the file has at least one frame
+    if not os.path.getsize(video_path) > 0:
+        logging.error(f"Error: The video file {video_path} is empty.")
+        return False
+
+    cap = cv2.VideoCapture(video_path)
+    if not cap.isOpened():
+        logging.error(f"Error: The video file {video_path} cannot be opened.")
+        return False
+
+    ret, frame = cap.read()
+    if not ret:
+        logging.error(f"Error: The video file {video_path} does not contain any frames.")
+        return False
+
+    cap.release()
+    return True
 
 if __name__ == "__main__":
 
@@ -52,6 +73,7 @@ if __name__ == "__main__":
     broker = os.getenv('MQTT_BROKER')
     port = os.getenv('MQTT_PORT')
     VIDEO_TO_PLAY = os.getenv('VIDEO_TO_PLAY')
+    FPS = int(os.getenv('FPS', '30'))  # Default to 30 FPS if not set
 
     if not broker or not port:
         logging.error("Error: MQTT_BROKER and MQTT_PORT environment variables must be set.")
@@ -69,20 +91,31 @@ if __name__ == "__main__":
     # Initialize the camera
     cap = connect_to_camera()
     
+    
+    
     do_loop = False
     if not cap:
-        logging.info("Repeating in a loop a video to simulate a camera")
+        if not check_video_file(VIDEO_TO_PLAY):
+            logging.error(f"Error: The video file {VIDEO_TO_PLAY} does not exist.")
+            sys.exit(1)
+        
+        logging.info(f"Repeating in a loop the video {VIDEO_TO_PLAY} to simulate a camera")
         cap = cv2.VideoCapture(f"{VIDEO_TO_PLAY}")
+        if FPS:
+            cap.set(cv2.CAP_PROP_FPS, FPS)  # Set the FPS
         do_loop = True
-        
-        
+    
     
     while True:
-        # Read the frame from the camera at the specified interval
-        time.sleep(SECONDS_BETWEEN_FRAMES) # around 500 ms
         ret, frame = cap.read()
         if not ret:
-            break
+            if do_loop:
+                logging.info("Reached end of video file, restarting")
+                cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
+                continue
+            else:
+                logging.info("cannot read frame of the camera, exiting")
+                break
 
         # Encode the frame as JPEG
         _, buffer = cv2.imencode('.jpg', frame)
@@ -90,6 +123,7 @@ if __name__ == "__main__":
 
         # Publish the frame to the MQTT topic
         try:
+            logging.info("publishing frame to MQTT")
             client.publish(topic, jpg_as_text)
         except Exception as e:
             logging.error(f"Error: Unable to publish to MQTT broker: {e}")

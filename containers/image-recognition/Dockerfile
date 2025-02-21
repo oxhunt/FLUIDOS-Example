@@ -13,11 +13,10 @@ RUN apt-get update && apt-get install -y \
     libxrender-dev
 
 # Install any needed packages specified in requirements.txt
-RUN pip install --no-cache-dir opencv-python mediapipe opencv-python paho-mqtt
+RUN pip install --no-cache-dir opencv-python mediapipe paho-mqtt ultralytics
 
 
 # Copy the current directory contents into the container at /usr/src/app
-COPY ./yolov3.weights ./yolov3.cfg ./coco.names .
 COPY ./image-recognition.py .
 # Run image-recognition.py when the container launches
 CMD ["python", "./image-recognition.py"]
