@@ -11,13 +11,17 @@ import time
 # MQTT settings
 broker = os.getenv('MQTT_BROKER')
 port = os.getenv('MQTT_PORT')
+subscribe_topic = os.getenv('SUBSCRIBE_TOPIC')
 
 if not broker or not port:
     print("Error: MQTT_BROKER and MQTT_PORT environment variables must be set.")
     sys.exit(1)
 
 port = int(port)
-subscribe_topic = "camera/stream"
+
+if not subscribe_topic:
+    print("Error: SUBSCRIBE_TOPIC environment variable must be set.")
+    sys.exit(1)
 
 # Initialize MQTT client
 def on_connect(client, userdata, flags, rc):  # Keep the parameters for the callback signature

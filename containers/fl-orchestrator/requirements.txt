@@ -1,1 +1,3 @@
 kopf
+netifaces
+kubernetes

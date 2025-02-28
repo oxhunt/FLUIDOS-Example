@@ -1,0 +1,50 @@
+# databroker seems to be using vss 4.1, with 4.2 it crashes
+# KUKSA_ADDRESS=localhost KUKSA_PORT=32555 \
+# python3 dbcfeeder.py --dbcfile ./Model3CAN.dbc --dumpfile ./candump.log --mapping ./mapping/vss_4.1/vss_dbc.json  --dbc-default ./dbc_default_values.json 
+
+#apiVersion: apps/v1
+#kind: Deployment
+#metadata:
+#  name: can-provider-kuksa-databroker
+#  labels:
+#    app: can-provider
+#spec:
+#  replicas: 1
+#  selector:
+#    matchLabels:
+#      app: can-provider
+#      server-type: kuksa_databroker
+#  template:
+#    metadata:
+#      labels:
+#        app: can-provider
+#        server-type: kuksa_databroker
+#      annotations:
+#        container.apparmor.security.beta.kubernetes.io/can-provider: "unconfined"
+#    spec:
+#      containers:
+#      - name: can-provider
+#        # image: can-provider:latest
+#        image: oxhunt/kc-provider:latest
+#        env:
+#        - name: LOG_LEVEL
+#          value: "INFO"
+#        - name: KUKSA_ADDRESS
+#          value: "kuksa-databroker"
+#        - name: KUKSA_PORT
+#          value: "55555"
+#        args: [
+#          "--server-type", "kuksa_databroker",
+#          "--dbcfile", "/files/Model3CAN.dbc",
+#          "--dumpfile", "/files/candump.log",
+#          "--mapping", "/files/mapping/vss_4.1/vss_dbc.json",
+#          "--dbc-default", "/files/dbc_default_values.json"
+#        ]
+#        volumeMounts:
+#        - name: mnt-volume
+#          mountPath: /files/
+#      volumes:
+#      - name: mnt-volume
+#        hostPath:
+#          path: /home/ubuntu/mnt/kuksa
+#          type: Directory

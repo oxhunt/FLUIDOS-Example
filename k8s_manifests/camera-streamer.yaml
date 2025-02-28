@@ -1,3 +1,4 @@
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -31,6 +32,10 @@ spec:
         securityContext:
           privileged: true
         env:
+        - name: FPS
+          value: "10"
+        - name: VIDEO_TO_PLAY
+          value: "/video.mp4"
         - name: MQTT_PORT
           value: "1883"
         - name: MQTT_BROKER
@@ -40,7 +45,12 @@ spec:
           name: video0
         - mountPath: /dev/video1
           name: video1
+        - name: fakevideo-volume
+          mountPath: /video.mp4
       volumes:
+      - name: fakevideo-volume
+        hostPath:
+          path: /home/ubuntu/FLUIDOS-Example/files/video-self-driving.mp4
       - name: video0
         hostPath:
           path: /dev/video0

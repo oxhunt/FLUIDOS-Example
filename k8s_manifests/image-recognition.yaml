@@ -2,6 +2,8 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: image-recognition
+  labels:
+    liqo.io/offloadable: "true"
 spec:
   replicas: 1
   selector:
@@ -36,3 +38,11 @@ spec:
           value: "1883"
         - name: MQTT_BROKER
           value: "mosquitto-service"
+        volumeMounts:
+        - name: yolomodel-volume
+          mountPath: /yolomodel.pt
+      volumes:
+      - name: yolomodel-volume
+        hostPath:
+          path: /home/ubuntu/FLUIDOS-Example/files/yolo11n.pt
+          type: File

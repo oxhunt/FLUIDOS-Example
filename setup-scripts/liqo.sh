@@ -17,6 +17,6 @@ liqo() {
         liqoctl uninstall --skip-confirm
     else
         echo "Usage: liqo {install|uninstall}"
-        exit 1
+        return 1
     fi
 }

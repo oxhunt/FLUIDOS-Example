@@ -45,3 +45,16 @@ the script offloads the default namespace and gives you the options to move the 
 `mosquitto_sub -h localhost -p 30004 -t "camera/stream"`
 `mosquitto_sub -h localhost -p 30004 -t "camera/objects"`
 By I've set the mosquitto service to listen using nodeport 30004.
+
+
+## Uprotocol
+Installation:
+```
+sudo apt install maven
+pip install gitpython
+git clone https://github.com/eclipse-uprotocol/up-python.git
+cd scripts
+python pull_and_compile_protos.py
+pip install ../ --use-deprecated=legacy-resolver
+```
+

@@ -2,3 +2,5 @@ Driver-State-Detection
 .venv
 # removing large files
 containers/image-recognition/yolov3.weights
+containers/kuksa-can-provider
+scrapdir

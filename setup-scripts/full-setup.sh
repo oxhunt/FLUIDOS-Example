@@ -6,6 +6,7 @@ source ./multus.sh
 source ./metallb.sh
 source ./liqo.sh
 source ./fluidos.sh
+source ./prometheus.sh
 
 # Main installation logic
 if [ "$1" == "install" ]; then
@@ -15,7 +16,9 @@ if [ "$1" == "install" ]; then
     metallb install
     liqo install
     fluidos install
+    prometheus install
 elif [ "$1" == "uninstall" ]; then
+    prometheus uninstall
     fluidos uninstall
     liqo uninstall
     metallb uninstall
@@ -23,5 +26,5 @@ elif [ "$1" == "uninstall" ]; then
     k3s uninstall
 else
     echo "Usage: $0 {install|uninstall}"
-    exit 1
+    return 1
 fi
