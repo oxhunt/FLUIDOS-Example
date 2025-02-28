@@ -11,7 +11,7 @@ source ./prometheus.sh
 # Main installation logic
 if [ "$1" == "install" ]; then
     ./install_requirements.sh
-    k3s install
+    k3ssh install
     multus install
     metallb install
     liqo install
@@ -23,7 +23,7 @@ elif [ "$1" == "uninstall" ]; then
     liqo uninstall
     metallb uninstall
     multus uninstall
-    k3s uninstall
+    k3ssh uninstall
 else
     echo "Usage: $0 {install|uninstall}"
     return 1

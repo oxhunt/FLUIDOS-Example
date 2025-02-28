@@ -85,6 +85,15 @@ spec:
       containers:
       - name: fl-orchestrator
         image: oxhunt/fl-orchestrator:latest
+        resources:
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
         env:
         - name: PROMETHEUS_SERVICE
           value: "192.168.11.79:30090"
+        #- name: NODE_NAME
+        #  value: vehicle

@@ -13,12 +13,18 @@ PROMETHEUS_SERVICE = os.getenv('PROMETHEUS_SERVICE', 'prometheus-server.monitori
 
 
 NAMESPACE = os.getenv('NAMESPACE', 'default')
-NODE_NAME = os.getenv('NODE_NAME', 'edge')
-NODE_IP = os.getenv('NODE_IP', socket.gethostbyname(socket.gethostname()))
+NODE_NAME = os.getenv('NODE_NAME', None)
+#NODE_IP = os.getenv('NODE_IP', socket.gethostbyname(socket.gethostname()))
 PORT= os.getenv('PORT', 9100)
 TIME_RANGE_SAMPLES= os.getenv('TIME_RANGE_SAMPLES', 15)
 LOW_THRESHOLD_CPU= os.getenv('LOW_THRESHOLD_CPU', 0.3)
 HIGH_THRESHOLD_CPU= os.getenv('HIGH_THRESHOLD_CPU', 0.8)
+
+
+if not NODE_NAME:
+    logging.error('NODE_NAME environment variable is not set.')
+    exit(1)
+
 
 class STATE:
     SAFE_RANGE=0

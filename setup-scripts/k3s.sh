@@ -1,6 +1,6 @@
 #!/bin/bash
 
-k3s() {
+k3ssh() {
     if [ "$1" == "install" ]; then
         echo "Installing K3s"
         curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC="--disable=servicelb" K3S_KUBECONFIG_MODE="644" sh -

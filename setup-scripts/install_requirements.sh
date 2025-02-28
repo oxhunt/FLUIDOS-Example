@@ -18,6 +18,17 @@ sudo apt install -y helm &>/dev/null
 # disable firewall to avoid problems down the road, we don't need security right now
 sudo ufw disable &>/dev/null
 
-sudo groupadd docker
-sudo usermod -aG docker $USER
-newgrp docker
+
+echo "Firewall disabled"
+
+#check if the docker group exists
+if [ $(getent group docker) ]; then
+    echo "Docker group already exists"
+else
+    # create docker group and add user to it in case it doesn't exist
+    sudo groupadd docker &>/dev/null
+    sudo usermod -aG docker $USER &>/dev/null
+    newgrp docker
+fi
+
+echo "Requirements installed successfully"
