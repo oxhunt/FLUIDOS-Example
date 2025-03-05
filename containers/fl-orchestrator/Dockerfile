@@ -10,13 +10,16 @@ WORKDIR /usr/src/app
 #    python3-dev \
 #    && rm -rf /var/lib/apt/lists/*
 
-# Install any needed packages specified in requirements.txt
-RUN pip install --no-cache-dir kopf kubernetes 
+
 # netifaces
 
 
 # Copy the current directory contents into the container at /usr/src/app
-COPY main.py .
+COPY requirements.txt .
 
+# Install any needed packages specified in requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY main.py .
 # Run image-recognition.py when the container launches
 CMD ["python", "./main.py"]

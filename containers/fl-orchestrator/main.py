@@ -5,6 +5,7 @@ import kubernetes.client as client
 import logging
 import requests
 import os
+from prometheus_api_client import PrometheusConnect
 
 logging.basicConfig(level=logging.INFO)
 
@@ -16,7 +17,7 @@ NAMESPACE = os.getenv('NAMESPACE', 'default')
 NODE_NAME = os.getenv('NODE_NAME', None)
 #NODE_IP = os.getenv('NODE_IP', socket.gethostbyname(socket.gethostname()))
 PORT= os.getenv('PORT', 9100)
-TIME_RANGE_SAMPLES= os.getenv('TIME_RANGE_SAMPLES', 15)
+TIME_RANGE_SAMPLES= os.getenv('TIME_RANGE_SAMPLES', 30)
 LOW_THRESHOLD_CPU= os.getenv('LOW_THRESHOLD_CPU', 0.3)
 HIGH_THRESHOLD_CPU= os.getenv('HIGH_THRESHOLD_CPU', 0.8)
 
@@ -33,12 +34,12 @@ class STATE:
     
     
 class OrchestratorLogic:
-    def __init__(self, query_interval, prometheus_url, node_name):
+    def __init__(self, query_interval, prometheus_service, node_name):
         config.load_incluster_config()  # Load the in-cluster config
         self.core_v1_api = client.CoreV1Api()
         self.apps_v1_api = client.AppsV1Api()
         self._status=STATE.SAFE_RANGE
-        self.prometheus_url=prometheus_url
+        self.prom = PrometheusConnect(url=PROMETHEUS_SERVICE, disable_ssl=True)
         self.node_name = node_name
         
         self.nodes_in_cluster = self.core_v1_api.list_node()
@@ -48,7 +49,7 @@ class OrchestratorLogic:
         logging.info(f'PROMETHEUS_SERVICE: {PROMETHEUS_SERVICE}')
         logging.info(f'NAMESPACE: {NAMESPACE}')
         logging.info(f'NODE_NAME: {NODE_NAME}')
-        logging.info(f'NODES IN CLUSTER: {self.nodes_in_cluster}')
+        #logging.info(f'NODES IN CLUSTER: {self.nodes_in_cluster}')
         logging.info(f'OFFLOADABLE DEPLOYMENTS: {list(map(lambda v: v.metadata.name, self.list_offloadable_deployments()))}')
         logging.info(f'-----------------------')
         
@@ -154,33 +155,42 @@ class OrchestratorLogic:
         return active_pods
     
     def get_node_cpu_usage(self):
-        query =  '1 - (avg by (instance) (rate(node_cpu_seconds_total{mode="idle", '+f'node="{self.node_name}"' + '}'+f"[{TIME_RANGE_SAMPLES}s])))"
+        
+        query =  '1 - (avg by (instance) (rate(node_cpu_seconds_total{mode=\'idle\', '+ \
+                    f'node=\'{self.node_name}\'' + \
+                    '}'+ \
+                    f"[{TIME_RANGE_SAMPLES}s])))"
+                    
+        
         logging.debug(f'Prometheus query: {query}')
         try:
-            response = requests.get(self.prometheus_url, params={'query': query})
+            response = self.prom.custom_query(query=query)
+            print("received response")
+            print(response)
         except requests.exceptions.RequestException as e:
             logging.error(f'Failed to get CPU usage for node {self.node_name}. Error: {e}')
+            logging.info(f"Query that caused the error: {query}")
             return -1
         if response.status_code != 200:
             logging.error(f'Failed to get CPU usage for node {self.node_name}. Status code: {response.status_code}')
             logging.error(response.json())
-            logging.info("Query that caused the error: ", query)
+            logging.info(f"Query that caused the error: {query}")
             return -1
         if 'data' not in response.json():
             logging.error(f'Failed to get CPU usage for node {self.node_name}. No data in response:')
             logging.error(response.json())
-            logging.error("Query that caused the error: ", query)
+            logging.info(f"Query that caused the error: {query}")
             return -1
         if 'result' not in response.json()['data']:
-            logging.error(f'Failed to get CPU usage for node {self.node_name}. No result in response:')
-            logging.error(response.json())
-            logging.info("Query that caused the error: ", query)
+            logging.error(f'Failed to get CPU usage for node {self.node_name}.')
+            logging.error(f"No result in response: {response.json()}")
+            logging.info(f"Query that caused the error: {query}")
             return -1
         result = response.json()['data']['result']
         if result:
             return float(result[0]['value'][1])
-        logging.error(f'No result in response: {result}')
-        logging.info("Query that caused the error: ", query)
+        logging.error(f"No result in response: {response.json()}")
+        logging.info(f"Query that caused the error: {query}")
         return -1
 
     @status.setter
@@ -245,8 +255,8 @@ class OrchestratorLogic:
                 self.status=STATE.SAFE_RANGE
             
 def main():
-    PROMETHEUS_URL = f"http://{PROMETHEUS_SERVICE}/api/v1/query"
-    orchestrator = OrchestratorLogic(QUERY_INTERVAL, PROMETHEUS_URL, NODE_NAME)
+    
+    orchestrator = OrchestratorLogic(QUERY_INTERVAL, PROMETHEUS_SERVICE, NODE_NAME)
     orchestrator.run()
     
         
