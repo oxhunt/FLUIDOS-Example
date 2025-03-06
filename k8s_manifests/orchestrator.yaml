@@ -74,7 +74,7 @@ spec:
         app: fl-orchestrator
     spec:
       # we set the pod to host network to monitor for changes in the host ip address
-      hostNetwork: true
+      #hostNetwork: true
       serviceAccountName: fl-orchestrator-sa
       containers:
       - name: fl-orchestrator
@@ -88,7 +88,9 @@ spec:
             cpu: "250m"
         env:
         #- name: PROMETHEUS_SERVICE
-        #  value: "192.168.11.79:30090"
+        #  value: "192.168.11.69:30090"
+        - name: PROMETHEUS_SERVICE
+          value: "prometheus-server.monitoring.svc.cluster.local:80"
         - name: NODE_NAME
           value: vehicle
         - name: TIME_RANGE_SAMPLES
