@@ -54,7 +54,7 @@ class OrchestratorLogic:
         logging.info(f'-----------------------')
         
         
-        logging.info("namespace offloading applied")
+        self.apply_namespace_offloading(NAMESPACE)
         
         self.offloaded=[]
         self.local=[]
