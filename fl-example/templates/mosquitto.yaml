@@ -3,6 +3,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: mosquitto
+  namespace: {{ .Values.namespace }}
 spec:
   replicas: 1
   selector:
@@ -56,6 +57,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: mosquitto-service
+  namespace: {{ .Values.namespace }}
 spec:
   type: NodePort
   selector:
@@ -72,6 +74,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: mosquitto-config
+  namespace: {{ .Values.namespace }}
 data:
   mosquitto.conf: |
     persistence false

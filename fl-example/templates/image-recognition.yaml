@@ -2,6 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: image-recognition
+  namespace: {{ .Values.namespace }}
   labels:
     liqo.io/offloadable: "true"
 spec:
@@ -44,5 +45,5 @@ spec:
       volumes:
       - name: yolomodel-volume
         hostPath:
-          path: /home/ubuntu/FLUIDOS-Example/files/yolo11n.pt
+          path: {{ .Values.files_folder }}/yolo11n.pt
           type: File

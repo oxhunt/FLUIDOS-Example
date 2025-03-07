@@ -40,6 +40,7 @@ class OrchestratorLogic:
         self._status=STATE.SAFE_RANGE
         self.prometheus_url=prometheus_url
         self.node_name = node_name
+        self.custom_objects_api = client.CustomObjectsApi()
         
         self.nodes_in_cluster = self.core_v1_api.list_node()
         
@@ -48,18 +49,105 @@ class OrchestratorLogic:
         logging.info(f'PROMETHEUS_SERVICE: {PROMETHEUS_SERVICE}')
         logging.info(f'NAMESPACE: {NAMESPACE}')
         logging.info(f'NODE_NAME: {NODE_NAME}')
-        logging.info(f'NODES IN CLUSTER: {self.nodes_in_cluster}')
+        #logging.info(f'NODES IN CLUSTER: {self.nodes_in_cluster}')
         logging.info(f'OFFLOADABLE DEPLOYMENTS: {list(map(lambda v: v.metadata.name, self.list_offloadable_deployments()))}')
         logging.info(f'-----------------------')
         
         
+        logging.info("namespace offloading applied")
         
         self.offloaded=[]
         self.local=[]
         pass
+    
+    def __del__(self):
+        self.apply_namespace_offloading(NAMESPACE, unapply=True)
+        pass
     @property
     def status(self):
         return self._status
+    
+    def apply_namespace_offloading(self, namespace, unapply=False):
+        if unapply:
+            try:
+                self.custom_objects_api.delete_namespaced_custom_object(
+                    group="offloading.liqo.io",
+                    version="v1alpha1",
+                    namespace=namespace,
+                    plural="namespaceoffloadings",
+                    name="offloading"
+                )
+                logging.info(f'NamespaceOffloading removed from namespace {namespace}')
+                
+                # Verify removal
+                while True:
+                    try:
+                        self.custom_objects_api.get_namespaced_custom_object(
+                            group="offloading.liqo.io",
+                            version="v1alpha1",
+                            namespace=namespace,
+                            plural="namespaceoffloadings",
+                            name="offloading"
+                        )
+                        logging.info(f'Waiting for NamespaceOffloading to be removed from namespace {namespace}...')
+                        time.sleep(1)
+                    except client.exceptions.ApiException as e:
+                        if e.status == 404:
+                            logging.info(f'NamespaceOffloading successfully removed from namespace {namespace}')
+                            break
+                        else:
+                            logging.error(f'Error while verifying removal of NamespaceOffloading from namespace {namespace}. Error: {e}')
+                            break
+            except client.exceptions.ApiException as e:
+                logging.error(f'Failed to remove NamespaceOffloading from namespace {namespace}. Error: {e}')
+        else:
+            body = {
+                "apiVersion": "offloading.liqo.io/v1alpha1",
+                "kind": "NamespaceOffloading",
+                "metadata": {
+                    "name": "offloading",
+                    "namespace": namespace
+                },
+                "spec": {
+                    "clusterSelector": {
+                        "nodeSelectorTerms": []
+                    },
+                    "namespaceMappingStrategy": "DefaultName",
+                    "podOffloadingStrategy": "LocalAndRemote"
+                },
+                "status": {}
+            }
+            try:
+                self.custom_objects_api.create_namespaced_custom_object(
+                    group="offloading.liqo.io",
+                    version="v1alpha1",
+                    namespace=namespace,
+                    plural="namespaceoffloadings",
+                    body=body
+                )
+                logging.info(f'NamespaceOffloading applied to namespace {namespace}')
+                
+                # Verify application
+                while True:
+                    try:
+                        self.custom_objects_api.get_namespaced_custom_object(
+                            group="offloading.liqo.io",
+                            version="v1alpha1",
+                            namespace=namespace,
+                            plural="namespaceoffloadings",
+                            name="offloading"
+                        )
+                        logging.info(f'NamespaceOffloading successfully applied to namespace {namespace}')
+                        break
+                    except client.exceptions.ApiException as e:
+                        if e.status == 404:
+                            logging.info(f'Waiting for NamespaceOffloading to be applied to namespace {namespace}...')
+                            time.sleep(1)
+                        else:
+                            logging.error(f'Error while verifying application of NamespaceOffloading to namespace {namespace}. Error: {e}')
+                            break
+            except client.exceptions.ApiException as e:
+                logging.error(f'Failed to apply NamespaceOffloading to namespace {namespace}. Error: {e}')
     
     def offload(self, deployment):
         deployment_name = deployment.metadata.name
