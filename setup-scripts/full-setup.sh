@@ -8,10 +8,19 @@ source ./liqo.sh
 source ./fluidos.sh
 source ./prometheus.sh
 
+echo "Sourcing phase completed, installing components..."
+
 # Main installation logic
 if [ "$1" == "install" ]; then
-    ./install_requirements.sh
-    k3ssh install
+    if [ "$NXP_S32" == 1 ]; then
+        echo "Running on a NXP S32G platform, $ARCHITECTURE"
+        echo "WARNING: The NXP S32G platform is not fully supported yet, expect bugs"
+        k3s_bashrc_setup
+    else
+        echo "Running on a non-NXP S32G platform: $ARCHITECTURE"
+        ./install_requirements.sh
+        k3ssh install
+    fi
     multus install
     metallb install
     liqo install
@@ -23,8 +32,10 @@ elif [ "$1" == "uninstall" ]; then
     liqo uninstall
     metallb uninstall
     multus uninstall
-    k3ssh uninstall
+    if [ "NXP_S32" == 0 ]; then
+        k3ssh uninstall
+    fi
+    
 else
     echo "Usage: $0 {install|uninstall}"
-    return 1
 fi

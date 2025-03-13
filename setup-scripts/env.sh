@@ -2,8 +2,20 @@
 
 # This script installs the required components to run FLUIDOS on a K3s cluster.
 # if you use this script, make sure that the ip address of the machine does not change or it could break the metallb configuration
+ARCHITECTURE=$(uname -m)
 
 
+NXP_S32=0
+
+if [ $ARCHITECTURE == "x86_64" ]; then
+    echo "Detected a non-NXP S32G platform: $ARCHITECTURE"
+elif [ $ARCHITECTURE == "aarch64" ]; then
+    echo "Detected a non-NXP S32G platform, $ARCHITECTURE"
+    NXP_S32=1
+else
+    echo "Unsupported platform, $ARCHITECTURE"
+    return 1
+fi
 NODE_NAME=$(hostname)
 HOST_INTERFACE="ens18" # Change this to the name of the host interface
 LIQOCTL_VERSION="v0.10.0"
@@ -37,25 +49,25 @@ CNI_PLUGINS=("bridge" "loopback" "host-device" "macvlan")
 # the first, second and third octet are a number between 0 and 255
 if [[ ! "$FIRST_OCTET" =~ ^[0-9]+$ ]] || [[ ! "$SECOND_OCTET" =~ ^[0-9]+$ ]] || [[ ! "$THIRD_OCTET" =~ ^[0-9]+$ ]]; then
     echo "Error: The first, second and third octet must be a number between 0 and 255"
-    exit 1
+    return 1
 fi
 
 # ENABLE_LOCAL_DISCOVERY must be a boolean
 if [[ "$ENABLE_LOCAL_DISCOVERY" != "true" && "$ENABLE_LOCAL_DISCOVERY" != "false" ]]; then
     echo "Error: ENABLE_LOCAL_DISCOVERY must be either 'true' or 'false'"
-    exit 1
+    return 1
 fi
 
 # INTERFACE must be a valid network interface present on the machine
 if ! ip a | grep -q $HOST_INTERFACE; then
     echo "Error: INTERFACE is not a valid network interface"
-    exit 1
+    return 1
 fi
 
 # NODE_IP must be a valid IP address
 if ! [[ "$NODE_IP" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
     echo "Error: NODE_IP is not a valid IP address"
-    exit 1
+    return 1
 fi
 
 # Convert to lowercase and remove special characters to make the string compatible with Liqo
@@ -65,5 +77,5 @@ clean_string(){
 
 
 NODE_NAME=$(clean_string "$NODE_NAME") # you can change this to a custom name, but ensure it is lowercase and without special characters
-
+echo "Environment has been correctly set up"
 
