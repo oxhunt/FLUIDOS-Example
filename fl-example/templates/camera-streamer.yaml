@@ -33,6 +33,8 @@ spec:
         securityContext:
           privileged: true
         env:
+        - name: LOG_LEVEL
+          value: "ERROR"
         - name: FPS
           value: "10"
         - name: VIDEO_TO_PLAY

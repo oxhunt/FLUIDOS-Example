@@ -8,10 +8,19 @@ import warnings
 import logging
 
 
+def get_log_level_from_env():
+    log_level = os.getenv('LOG_LEVEL', "INFO")
+    if log_level == "INFO":
+        return logging.INFO
+    elif log_level == "DEBUG":
+        return logging.DEBUG
+    elif log_level == "ERROR":
+        return logging.ERROR
+    else:
+        logging.warning(f"Invalid LOG_LEVEL value: {log_level}. Defaulting to INFO")
+        return logging.INFO
 
-logging.basicConfig(level=logging.INFO)
-
-
+logging.basicConfig(level=get_log_level_from_env())
 
 
 # Function to connect to the broker with retry logic

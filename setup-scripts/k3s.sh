@@ -29,7 +29,7 @@ k3ssh() {
         if [ $ARCHITECTURE == "x86_64" ]; then
             wget "https://github.com/derailed/k9s/releases/download/$K9S_VERSION/k9s_linux_amd64.deb"
             sudo apt install ./k9s_linux_amd64.deb -y
-            sudo rm k9s_linux_amd64.deb
+            sudo rm k9s_linux_amd64.deb*
         fi
     elif [ "$1" == "uninstall" ]; then
         echo "Uninstalling K3s"
