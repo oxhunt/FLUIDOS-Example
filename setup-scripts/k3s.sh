@@ -7,12 +7,6 @@ k3s_bashrc_setup() {
     # Add alias for kubectl to .bashrc only if it's not already present
     grep -qxF 'alias k=kubectl' "$USER_HOME/.bashrc" || echo 'alias k=kubectl' >> "$USER_HOME/.bashrc"
 
-    # Add kubectl bash completion sourcing to .bashrc only if it's not already present
-    grep -qxF 'source <(kubectl completion bash)' "$USER_HOME/.bashrc" || echo 'source <(kubectl completion bash)' >> "$USER_HOME/.bashrc"
-
-    # Add kubectl completion for the alias 'k' only to .bashrc if it's not already present
-    grep -qxF 'complete -F __start_kubectl k' "$USER_HOME/.bashrc" || echo 'complete -F __start_kubectl k' >> "$USER_HOME/.bashrc"
-
     kubectl config set-context --current --editor "nano" &>/dev/null
 }
 
@@ -25,6 +19,12 @@ k3ssh() {
         kubectl wait --for=condition=ready pod -n kube-system --all --timeout=90s
         
         k3s_bashrc_setup
+
+        # Add kubectl bash completion sourcing to .bashrc only if it's not already present
+        grep -qxF 'source <(kubectl completion bash)' "$USER_HOME/.bashrc" || echo 'source <(kubectl completion bash)' >> "$USER_HOME/.bashrc"
+
+        # Add kubectl completion for the alias 'k' only to .bashrc if it's not already present
+        grep -qxF 'complete -F __start_kubectl k' "$USER_HOME/.bashrc" || echo 'complete -F __start_kubectl k' >> "$USER_HOME/.bashrc"
 
         if [ $ARCHITECTURE == "x86_64" ]; then
             wget "https://github.com/derailed/k9s/releases/download/$K9S_VERSION/k9s_linux_amd64.deb"
