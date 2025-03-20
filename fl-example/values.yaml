@@ -4,3 +4,4 @@ files_folder: /home/ubuntu/FLUIDOS-Example/files/
 node_name: vehicle
 prometheus_service: prometheus-server.monitoring.svc.cluster.local:80
 time_range_samples: 15
+hostKubeconfigPath: /etc/rancher/k3s/k3s.yaml

@@ -1,0 +1,32 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: inspector-container
+  labels:
+    app: inspector
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: inspector
+  template:
+    metadata:
+      labels:
+        app: inspector
+    spec:
+      hostNetwork: true
+      containers:
+      - name: inspector
+        image: oxhunt/inspection-container:latest # Replace with your container image
+        volumeMounts:
+        - name: kubeconfig-volume
+          mountPath: /config
+          readOnly: true
+        env:
+        - name: KUBECONFIG
+          value: /config
+      volumes:
+      - name: kubeconfig-volume
+        hostPath:
+          path: {{ .Values.hostKubeconfigPath }} # Path to the kubeconfig file
+          type: File
