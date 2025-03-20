@@ -7,21 +7,10 @@ ARCHITECTURE=$(uname -m)
 
 NXP_S32=0
 
-if [ $ARCHITECTURE == "x86_64" ]; then
-    echo "Detected a non-NXP S32G platform: $ARCHITECTURE"
-elif [ $ARCHITECTURE == "aarch64" ]; then
-    echo "Detected a non-NXP S32G platform, $ARCHITECTURE"
-    NXP_S32=1
-else
-    echo "Unsupported platform, $ARCHITECTURE"
-    return 1
-fi
 NODE_NAME=$(hostname)
-HOST_INTERFACE="ens18" # Change this to the name of the host interface
-LIQOCTL_VERSION="v0.10.0"
+LIQOCTL_VERSION="v0.10.3"
 FLUIDOS_VERSION="0.1.1"
 K9S_VERSION="v0.32.7"
-NODE_IP=$(ip a | grep $HOST_INTERFACE | grep inet | awk '{print $2}' | cut -d '/' -f 1)
 REAR_PORT=30000
 export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
 USER_HOME=$(eval echo ~$USER)
@@ -42,6 +31,20 @@ THIRD_OCTET=$(printf "%d" "'$NODE_NAME" | awk '{print $1 % 255}')
 # Multus
 CNI_PLUGINS_VERSION="v1.5.1"
 CNI_PLUGINS=("bridge" "loopback" "host-device" "macvlan")
+
+if [ $ARCHITECTURE == "x86_64" ]; then
+    echo "Detected a $ARCHITECTURE, by default the host interface is considered to be ens18"
+    HOST_INTERFACE="ens18" # Change this to the name of the host interface
+elif [ $ARCHITECTURE == "aarch64" ]; then
+    echo "Detected a non-NXP S32G platform, $ARCHITECTURE, by default the host interface is considered to be eth0"
+    HOST_INTERFACE="eth0" # Change this to the name of the host interface
+    NXP_S32=1
+
+else
+    echo "Unsupported platform, $ARCHITECTURE"
+    return 1
+fi
+
 
 
 # validate the commandline arguments and variables
@@ -79,3 +82,4 @@ clean_string(){
 NODE_NAME=$(clean_string "$NODE_NAME") # you can change this to a custom name, but ensure it is lowercase and without special characters
 echo "Environment has been correctly set up"
 
+NODE_IP=$(ip a | grep $HOST_INTERFACE | grep inet | awk '{print $2}' | cut -d '/' -f 1)

@@ -27,7 +27,7 @@ EOF
     elif [ "$1" == "uninstall" ]; then
         echo "Uninstalling Multus"
         helm uninstall multus -n kube-system
-        kubectl delete helmchart.helm.cattle.io/multus -n kube-system
+        #kubectl delete helmchart.helm.cattle.io/multus -n kube-system
     else
         echo "Usage: multus {install|uninstall}"
         return 1

@@ -32,8 +32,10 @@ elif [ "$1" == "uninstall" ]; then
     liqo uninstall
     metallb uninstall
     multus uninstall
-    if [ "NXP_S32" == 0 ]; then
+    if [ "$NXP_S32" == 0 ]; then
         k3ssh uninstall
+    else
+        echo "skipping k3s uninstall on NXP S32G platform"
     fi
     
 else
