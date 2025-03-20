@@ -50,8 +50,8 @@ liqo() {
         kubectl get clusterrolebinding | grep liqo | awk '{print $1}' | xargs kubectl delete clusterrolebinding
 
         kubectl get mutatingwebhookconfiguration | grep liqo | awk '{print $1}' | xargs kubectl delete mutatingwebhookconfiguration
+        kubectl get validatingwebhookconfiguration | grep liqo | awk '{print $1}' | xargs kubectl delete validatingwebhookconfiguration
 
-kubectl get validatingwebhookconfiguration | grep liqo | awk '{print $1}' | xargs kubectl delete validatingwebhookconfiguration
     else
         echo "Usage: liqo {install|uninstall}"
         return 1

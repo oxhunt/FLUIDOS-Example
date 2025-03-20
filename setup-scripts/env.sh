@@ -67,9 +67,11 @@ if ! ip a | grep -q $HOST_INTERFACE; then
     return 1
 fi
 
+NODE_IP=$(ip a | grep $HOST_INTERFACE | grep inet | awk '{print $2}' | cut -d '/' -f 1)
+
 # NODE_IP must be a valid IP address
 if ! [[ "$NODE_IP" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-    echo "Error: NODE_IP is not a valid IP address"
+    echo "Error: NODE_IP on interface $HOST_INTERFACE is not a valid IP address: $NODE_IP"
     return 1
 fi
 
@@ -82,4 +84,3 @@ clean_string(){
 NODE_NAME=$(clean_string "$NODE_NAME") # you can change this to a custom name, but ensure it is lowercase and without special characters
 echo "Environment has been correctly set up"
 
-NODE_IP=$(ip a | grep $HOST_INTERFACE | grep inet | awk '{print $2}' | cut -d '/' -f 1)
