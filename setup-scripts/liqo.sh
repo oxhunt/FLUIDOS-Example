@@ -6,7 +6,15 @@ liqo() {
         curl -s --fail -LS "https://github.com/liqotech/liqo/releases/download/$LIQOCTL_VERSION/liqoctl-linux-amd64.tar.gz" | tar -xz
         sudo install -o root -g root -m 0755 liqoctl /usr/local/bin/liqoctl
         rm -f liqoctl LICENSE
-        liqoctl install k3s --timeout 10m --cluster-name "$NODE_NAME" --verbose --pod-cidr "$(kubectl get nodes -o jsonpath='{.items[*].spec.podCIDR}')" --service-cidr "$(echo '{"apiVersion":"v1","kind":"Service","metadata":{"name":"tst"},"spec":{"clusterIP":"1.1.1.1","ports":[{"port":443}]}}' | kubectl apply -f - 2>&1 | sed 's/.*valid IPs is //')"
+        if [ "$LIQOCTL_VERSION" == "v0.10.3" ]; then
+            liqoctl install k3s --timeout 10m --cluster-name "$NODE_NAME" --verbose --pod-cidr "$(kubectl get nodes -o jsonpath='{.items[*].spec.podCIDR}')" --service-cidr "$(echo '{"apiVersion":"v1","kind":"Service","metadata":{"name":"tst"},"spec":{"clusterIP":"1.1.1.1","ports":[{"port":443}]}}' | kubectl apply -f - 2>&1 | sed 's/.*valid IPs is //')"
+        elif [ "$LIQOCTL_VERSION" == "v1.0.0" ]; then
+            # from liqo to 1.0.0 the flag --cluster-name has become --cluster-id
+            liqoctl install k3s --timeout 10m --cluster-id "$NODE_NAME" --verbose --pod-cidr "$(kubectl get nodes -o jsonpath='{.items[*].spec.podCIDR}')" --service-cidr "$(echo '{"apiVersion":"v1","kind":"Service","metadata":{"name":"tst"},"spec":{"clusterIP":"1.1.1.1","ports":[{"port":443}]}}' | kubectl apply -f - 2>&1 | sed 's/.*valid IPs is //')"
+        else
+            echo "Unsupported Liqo version"
+            return 1
+        fi
         kubectl wait --for=condition=ready pod -n liqo --all --timeout=300s
         # Add liqoctl completion to .bashrc if it's not already present
         if ! grep -qxF 'source <(liqoctl completion bash)' "$USER_HOME/.bashrc"; then

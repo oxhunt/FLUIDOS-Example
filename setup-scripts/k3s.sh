@@ -13,8 +13,8 @@ k3s_bashrc_setup() {
 
 k3ssh() {
     if [ "$1" == "install" ]; then
-        echo "Installing K3s"
-        curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC="--disable=servicelb" K3S_KUBECONFIG_MODE="644" sh -
+        echo "Installing K3s $INSTALL_K3S_VERSION"
+        curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION=$INSTALL_K3S_VERSION INSTALL_K3S_EXEC="--disable=servicelb" K3S_KUBECONFIG_MODE="644" sh -
         export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
         kubectl wait --for=condition=ready pod -n kube-system --all --timeout=90s
         
@@ -26,15 +26,15 @@ k3ssh() {
         # Add kubectl completion for the alias 'k' only to .bashrc if it's not already present
         grep -qxF 'complete -F __start_kubectl k' "$USER_HOME/.bashrc" || echo 'complete -F __start_kubectl k' >> "$USER_HOME/.bashrc"
 
-        if [ $ARCHITECTURE == "x86_64" ]; then
-            wget "https://github.com/derailed/k9s/releases/download/$K9S_VERSION/k9s_linux_amd64.deb"
-            sudo apt install ./k9s_linux_amd64.deb -y
-            sudo rm k9s_linux_amd64.deb*
-        fi
+        #if [ $ARCHITECTURE == "x86_64" ]; then
+        #    wget "https://github.com/derailed/k9s/releases/download/$K9S_VERSION/k9s_linux_amd64.deb"
+        #    sudo apt install ./k9s_linux_amd64.deb -y
+        #    sudo rm k9s_linux_amd64.deb*
+        #fi
     elif [ "$1" == "uninstall" ]; then
         echo "Uninstalling K3s"
         /usr/local/bin/k3s-uninstall.sh
-        sudo apt remove k9s -y
+        #sudo apt remove k9s -y
     else
         echo "Usage: k3s {install|uninstall}"
         return 1
