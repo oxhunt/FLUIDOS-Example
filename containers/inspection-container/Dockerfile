@@ -58,7 +58,11 @@ RUN echo "source <(kubectl completion bash)" >> /root/.bashrc
 RUN echo "source <(k9s completion bash)" >> /root/.bashrc; \
     echo 'alias k=kubectl' >> "/root/.bashrc"; \
     echo 'complete -F __start_kubectl k' >> "/root/.bashrc"
-    RUN echo "source <(helm completion bash)" >> /root/.bashrc
+
+# customize the shell prompt to make the container more identifiable, it should contain the name of the container, colored in red
+RUN echo 'export PS1="\[\033[01;31m\]inspection-container\[\033[00m\]:\[\033[01;34m\]\w\[\033[00m\]\$ "' >> /root/.bashrc
+
+#RUN echo "source <(helm completion bash)" >> /root/.bashrc
 
 # set the container to run indeterminately
 CMD ["tail", "-f", "/dev/null"]

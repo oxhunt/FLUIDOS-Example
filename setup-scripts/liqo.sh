@@ -7,7 +7,11 @@ liqo() {
         sudo install -o root -g root -m 0755 liqoctl /usr/local/bin/liqoctl
         rm -f liqoctl LICENSE
         if [ "$LIQOCTL_VERSION" == "v0.10.3" ]; then
-            liqoctl install k3s --timeout 10m --cluster-name "$NODE_NAME" --verbose --pod-cidr "$(kubectl get nodes -o jsonpath='{.items[*].spec.podCIDR}')" --service-cidr "$(echo '{"apiVersion":"v1","kind":"Service","metadata":{"name":"tst"},"spec":{"clusterIP":"1.1.1.1","ports":[{"port":443}]}}' | kubectl apply -f - 2>&1 | sed 's/.*valid IPs is //')"
+            #liqoctl install k3s --timeout 10m --cluster-name "$NODE_NAME" --verbose --pod-cidr "$(kubectl get nodes -o jsonpath='{.items[*].spec.podCIDR}')" --service-cidr "$(echo '{"apiVersion":"v1","kind":"Service","metadata":{"name":"tst"},"spec":{"clusterIP":"1.1.1.1","ports":[{"port":443}]}}' | kubectl apply -f - 2>&1 | sed 's/.*valid IPs is //')"
+            liqoctl install k3s --cluster-name "$NODE_NAME" --verbose --timeout 10m \
+                --set ipam.podCIDR=$(kubectl get nodes -o jsonpath='{.items[*].spec.podCIDR}') \
+                --set ipam.serviceCIDR=$(echo '{"apiVersion":"v1","kind":"Service","metadata":{"name":"tst"},"spec":{"clusterIP":"1.1.1.1","ports":[{"port":443}]}}' | kubectl apply -f - 2>&1 | sed 's/.*valid IPs is //')
+            
         elif [ "$LIQOCTL_VERSION" == "v1.0.0" ]; then
             # from liqo to 1.0.0 the flag --cluster-name has become --cluster-id
             liqoctl install k3s --timeout 10m --cluster-id "$NODE_NAME" --verbose --pod-cidr "$(kubectl get nodes -o jsonpath='{.items[*].spec.podCIDR}')" --service-cidr "$(echo '{"apiVersion":"v1","kind":"Service","metadata":{"name":"tst"},"spec":{"clusterIP":"1.1.1.1","ports":[{"port":443}]}}' | kubectl apply -f - 2>&1 | sed 's/.*valid IPs is //')"
