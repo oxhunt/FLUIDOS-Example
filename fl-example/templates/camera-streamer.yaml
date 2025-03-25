@@ -53,7 +53,7 @@ spec:
       volumes:
       - name: fakevideo-volume
         hostPath:
-          path: {{ .Values.files_folder }}video-self-driving.mp4
+          path: {{ .Values.files_folder }}/video-self-driving.mp4
       - name: video0
         hostPath:
           path: /dev/video0
