@@ -6,6 +6,7 @@ import os
 import time
 import warnings
 import logging
+import struct
 
 
 def get_log_level_from_env():
@@ -126,14 +127,12 @@ if __name__ == "__main__":
                 logging.info("cannot read frame of the camera, exiting")
                 break
 
-        # Encode the frame as JPEG
-        _, buffer = cv2.imencode('.jpg', frame)
-        jpg_as_text = base64.b64encode(buffer).decode('utf-8')
+        frame_data = frame.tobytes()
 
         # Publish the frame to the MQTT topic
         try:
             logging.info("publishing frame to MQTT")
-            client.publish(topic, jpg_as_text)
+            client.publish(topic, frame_data)
         except Exception as e:
             logging.error(f"Error: Unable to publish to MQTT broker: {e}")
             connect_to_broker()

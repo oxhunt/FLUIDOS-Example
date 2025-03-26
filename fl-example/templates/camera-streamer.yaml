@@ -34,7 +34,7 @@ spec:
           privileged: true
         env:
         - name: LOG_LEVEL
-          value: "ERROR"
+          value: "DEBUG"
         - name: FPS
           value: "10"
         - name: VIDEO_TO_PLAY

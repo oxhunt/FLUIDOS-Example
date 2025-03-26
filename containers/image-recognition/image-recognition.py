@@ -73,12 +73,12 @@ def on_message(client, userdata, msg):
     logging.info("Message received on topic " + msg.topic)
     
     # Load YOLO
-    # Decode the image to cv2 format
     try:
-        jpg_original = base64.b64decode(msg.payload)
-        jpg_as_np = np.frombuffer(jpg_original, dtype=np.uint8)
-        frame = cv2.imdecode(jpg_as_np, flags=1)
-        logging.debug("Image decoded successfully.")
+        # get the msg payload which is an image in bytes and make it readable by yolo
+        frame = np.frombuffer(msg.payload, np.uint8)
+        frame = cv2.imdecode(frame, cv2.IMREAD_COLOR)
+        logging.debug("Image decoded successfully.") 
+        
     except Exception as e:
         logging.error(f"Error decoding image: {e}")
         return
