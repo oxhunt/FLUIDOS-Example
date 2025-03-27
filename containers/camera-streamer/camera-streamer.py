@@ -126,12 +126,12 @@ if __name__ == "__main__":
             else:
                 logging.info("cannot read frame of the camera, exiting")
                 break
-
-        frame_data = frame.tobytes()
+        # make the frame a numpy array and send it as a byte array
+        frame_data = cv2.imencode('.jpg', frame)[1].tobytes()
 
         # Publish the frame to the MQTT topic
         try:
-            logging.info("publishing frame to MQTT")
+            logging.info("publishing frame to MQTT, size: %d" % len(frame_data))
             client.publish(topic, frame_data)
         except Exception as e:
             logging.error(f"Error: Unable to publish to MQTT broker: {e}")

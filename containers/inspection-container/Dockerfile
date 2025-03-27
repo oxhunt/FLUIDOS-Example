@@ -14,11 +14,7 @@ RUN apt-get update && apt-get install -y \
     net-tools 
 
 # Installing helm
-RUN curl -s https://baltocdn.com/helm/signing.asc | gpg --dearmor | sudo tee /usr/share/keyrings/helm.gpg > /dev/null && \
-    sudo apt install apt-transport-https --yes &>/dev/null && \
-    echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/helm.gpg] https://baltocdn.com/helm/stable/debian/ all main" | sudo tee /etc/apt/sources.list.d/helm-stable-debian.list &>/dev/null && \
-    sudo apt update &>/dev/null && \
-    sudo apt install -y helm &>/dev/null
+RUN curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
     
 RUN apt-get update && apt-get install -y \
     iproute2 \
@@ -62,7 +58,7 @@ RUN echo "source <(k9s completion bash)" >> /root/.bashrc; \
 # customize the shell prompt to make the container more identifiable, it should contain the name of the container, colored in red
 RUN echo 'export PS1="\[\033[01;31m\]inspection-container\[\033[00m\]:\[\033[01;34m\]\w\[\033[00m\]\$ "' >> /root/.bashrc
 
-#RUN echo "source <(helm completion bash)" >> /root/.bashrc
+RUN echo "source <(helm completion bash)" >> /root/.bashrc
 
 # set the container to run indeterminately
 CMD ["tail", "-f", "/dev/null"]

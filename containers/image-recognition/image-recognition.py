@@ -69,14 +69,15 @@ def on_message(client, userdata, msg):
         return
 
     last_processed_time = current_time
-
-    logging.info("Message received on topic " + msg.topic)
+    
+    logging.info(f"Message received on topic {msg.topic}, length: {len(msg.payload)}")
     
     # Load YOLO
     try:
+        # Convert msg.payload (bytes) to a NumPy array
+        np_arr = np.frombuffer(msg.payload, np.uint8)
         # get the msg payload which is an image in bytes and make it readable by yolo
-        frame = np.frombuffer(msg.payload, np.uint8)
-        frame = cv2.imdecode(frame, cv2.IMREAD_COLOR)
+        frame = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
         logging.debug("Image decoded successfully.") 
         
     except Exception as e:
@@ -99,7 +100,7 @@ def on_message(client, userdata, msg):
     json_results=[]
     
     for r in results:
-        json_res=r.tojson()
+        json_res=r.to_json()
         json_results.append(json_res)
         
         #sending image
@@ -107,7 +108,7 @@ def on_message(client, userdata, msg):
         
         status = result.rc
         if status == 0:
-            logging.info(f"Sent json to topic `{publish_topic}`", json_res)
+            logging.info(f"Sent json to topic `{publish_topic}`, {json.dumps(json_res)}")
         else:
             logging.error(f"Failed to send message to topic {publish_topic}")
         
