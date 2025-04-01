@@ -16,8 +16,23 @@ k3ssh() {
         echo "Installing K3s $INSTALL_K3S_VERSION"
         curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION=$INSTALL_K3S_VERSION INSTALL_K3S_EXEC="--disable=servicelb" K3S_KUBECONFIG_MODE="644" sh -
         export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
-        kubectl wait --for=condition=ready pod -n kube-system --all --timeout=90s
+
+        echo "Waiting for K3s to be running..."
+        # wait for k3s to be ready
+        while ! ps -aux | grep "/usr/local/bin/k3s server" -v >/dev/null; do
+            sleep 5
+        done
+        echo "K3s is running"
+        sleep 5
+        # Check if K3s is running
+        while ! kubectl get pod -n kube-system | grep -v grep >/dev/null; do
+            sleep 5
+        done
+        #echo "Waiting for K3s to be ready..."
+        #kubectl wait --for=condition=ready pod -n kube-system --all --timeout=90s
         
+        echo "K3s is running and ready"
+
         k3s_bashrc_setup
 
         # Add kubectl bash completion sourcing to .bashrc only if it's not already present

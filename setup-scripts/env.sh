@@ -5,7 +5,7 @@
 ARCHITECTURE=$(uname -m)
 
 
-INSTALL_K3S_VERSION="v1.29.13+k3s1"
+INSTALL_K3S_VERSION="v1.25.8+k3s1" #"v1.29.13+k3s1"
 
 NXP_S32=0
 
@@ -37,10 +37,12 @@ CNI_PLUGINS=("bridge" "loopback" "host-device" "macvlan")
 if [ $ARCHITECTURE == "x86_64" ]; then
     echo "Detected a $ARCHITECTURE, by default the host interface is considered to be ens18"
     HOST_INTERFACE="ens18" # Change this to the name of the host interface
+    CNI_BIN_DIR="/var/lib/rancher/k3s/data/cni/"
 elif [ $ARCHITECTURE == "aarch64" ]; then
     echo "Detected a non-NXP S32G platform, $ARCHITECTURE, by default the host interface is considered to be eth0"
     HOST_INTERFACE="eth0" # Change this to the name of the host interface
     NXP_S32=1
+    CNI_BIN_DIR="/opt/cni/bin"
 
 else
     echo "Unsupported platform, $ARCHITECTURE"
