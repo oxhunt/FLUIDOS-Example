@@ -30,8 +30,8 @@ multus() {
               --set config.fullnameOverride=multus \
               --set config.cni_conf.confDir=/var/lib/rancher/k3s/agent/etc/cni/net.d/ \
               --set config.cni_conf.binDir=/var/lib/rancher/k3s/data/current/bin/ \
-              --set config.kubeconfig=/var/lib/rancher/k3s/agent/etc/cni/net.d/multus.d/multus.kubeconfig \
-              --set config.cni_conf.multusConfFile=/etc/rancher/k3s/k3s.yaml
+              --set config.cni_conf.kubeconfig=/var/lib/rancher/k3s/agent/etc/cni/net.d/multus.d/multus.kubeconfig \
+              #--set config.cni_conf.multusConfFile=/etc/rancher/k3s/k3s.yaml
               #--set config.cni_conf.binDir=/var/lib/rancher/k3s/data/cni/  # for k3s version > 1.28.15
 
         # Wait for Multus to be running
